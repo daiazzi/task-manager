@@ -10,6 +10,7 @@ import rich_click as click
 from rich.console import Console
 from rich.panel import Panel
 
+from . import daemon as daemon_mod
 from . import parser as parser_mod
 from . import writer as writer_mod
 from . import store
@@ -39,11 +40,11 @@ def _load_doc(path: Path):
 
 
 @click.group(invoke_without_command=False)
-@click.version_option(package_name="task-manager", prog_name="task-manager")
+@click.version_option(package_name="task-manager", prog_name="tsk")
 def cli() -> None:
     """Local task manager backed by a TODO.md.
 
-    Default invocation: `task-manager <path/to/TODO.md>` starts the web UI.
+    Default invocation: `tsk <path/to/TODO.md>` starts the web UI.
     """
 
 
@@ -63,9 +64,24 @@ def serve(path: Path, no_browser: bool, host: str, port: int | None) -> None:
 
 
 @cli.command()
-@click.argument("path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.argument("path", type=click.Path(dir_okay=False, path_type=Path))
 def init(path: Path) -> None:
-    """Create the sidecar directory and stamp hashes into the markdown."""
+    """Create the sidecar directory and stamp hashes into the markdown.
+
+    If the TODO file does not exist, it is created with a default scaffold.
+    The parent directory must exist.
+    """
+    path = path.expanduser().resolve()
+    parent = path.parent
+    if not parent.is_dir():
+        raise click.ClickException(f"Parent directory does not exist: {parent}")
+
+    created = False
+    if not path.exists():
+        title = path.stem
+        path.write_text(f"# {title}\n\n## Tasks\n", encoding="utf-8")
+        created = True
+
     store.ensure_sidecar(path)
     text = path.read_text(encoding="utf-8")
     existing = parser_mod.existing_hashes(text)
@@ -74,10 +90,40 @@ def init(path: Path) -> None:
         path.write_text(new_text, encoding="utf-8")
     doc = parser_mod.parse(path)
     store.sync(doc, path)
-    _console.print(f"task-manager: initialized {store.sidecar_dir(path).name}")
-    _console.print(f"task-manager: stamped {len(stamped)} new task(s)")
+    if created:
+        _console.print(f"tsk: created {path}")
+    _console.print(f"tsk: initialized {store.sidecar_dir(path).name}")
+    _console.print(f"tsk: stamped {len(stamped)} new task(s)")
     for w in doc.warnings:
         _console.print(f"[yellow]warning:[/yellow] {w}")
+
+
+@cli.command()
+@click.argument("path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--host", default="127.0.0.1", show_default=True)
+@click.option("--port", type=int, default=None, help="Override the port from config.yaml.")
+def up(path: Path, host: str, port: int | None) -> None:
+    """Start the server detached from the terminal (background)."""
+    path = path.expanduser().resolve()
+    _load_doc(path)
+    try:
+        pid, url = daemon_mod.start(path, host=host, port=port)
+    except RuntimeError as e:
+        raise click.ClickException(str(e))
+    _console.print(f"tsk: started daemon (pid {pid})")
+    _console.print(f"tsk: open {url}")
+
+
+@cli.command()
+@click.argument("path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+def down(path: Path) -> None:
+    """Stop the daemon associated with the given TODO file."""
+    path = path.expanduser().resolve()
+    pid = daemon_mod.stop(path)
+    if pid is None:
+        _console.print("tsk: no daemon running")
+    else:
+        _console.print(f"tsk: stopped daemon (pid {pid})")
 
 
 @cli.group()
@@ -156,7 +202,7 @@ def task_add(
 
     doc2 = parser_mod.parse(path)
     store.sync(doc2, path)
-    _console.print(f"task-manager: added ({new_h}).")
+    _console.print(f"tsk: added ({new_h}).")
 
 
 @task.command(name="remove")
@@ -181,7 +227,7 @@ def task_remove(path: Path, hash: str) -> None:
 
     doc2 = parser_mod.parse(path)
     store.sync(doc2, path)
-    _console.print(f"task-manager: removed ({hash}) and {len(subtasks)} subtask(s).")
+    _console.print(f"tsk: removed ({hash}) and {len(subtasks)} subtask(s).")
 
 
 @cli.group(name="help")
@@ -266,10 +312,10 @@ def _parse_date(s: str) -> date:
 
 def main() -> None:
     argv = sys.argv[1:]
-    known_top = {"init", "task", "help", "serve"}
+    known_top = {"init", "task", "help", "serve", "up", "down"}
     if argv and not argv[0].startswith("-") and argv[0] not in known_top:
         argv = ["serve"] + argv
-    cli.main(args=argv, prog_name="task-manager", standalone_mode=True)
+    cli.main(args=argv, prog_name="tsk", standalone_mode=True)
 
 
 if __name__ == "__main__":

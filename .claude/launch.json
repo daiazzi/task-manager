@@ -6,7 +6,7 @@
       "runtimeExecutable": "pixi",
       "runtimeArgs": [
         "run",
-        "task-manager",
+        "tsk",
         "examples/TODO.md",
         "--no-browser",
         "--port",

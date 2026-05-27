@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import tempfile
 from datetime import date, datetime
 from pathlib import Path
@@ -8,6 +9,23 @@ from pathlib import Path
 import yaml
 
 from .models import Config, ParsedDocument, TaskMetadata
+
+
+_AGENT_MD_SOURCE = Path(__file__).parent / "static" / "agent.md"
+
+
+_DEFAULT_CONFIG_BODY = """\
+# task-manager config — edit and run `tsk` to apply.
+port: null
+
+theme: dark    # "dark" or "light"
+
+# Tag colours. The "default" entry colours tags without a specific mapping.
+colors:
+  default: "#7aa2f7"
+  # api: "#9ece6a"
+  # db:  "#f7768e"
+"""
 
 
 def sidecar_dir(todo_path: Path) -> Path:
@@ -31,7 +49,10 @@ def ensure_sidecar(todo_path: Path) -> Path:
         _atomic_write(tp, "tasks: []\n")
     cp = config_yaml_path(todo_path)
     if not cp.exists():
-        _atomic_write(cp, "port: null\n")
+        _atomic_write(cp, _DEFAULT_CONFIG_BODY)
+    ap = d / "agent.md"
+    if not ap.exists() and _AGENT_MD_SOURCE.exists():
+        shutil.copyfile(_AGENT_MD_SOURCE, ap)
     return d
 
 
@@ -78,18 +99,31 @@ def save_tasks_yaml(todo_path: Path, data: dict[str, TaskMetadata]) -> None:
     _atomic_write(tasks_yaml_path(todo_path), body)
 
 
+_DEFAULT_COLORS = {"default": "#7aa2f7"}
+
+
 def load_config(todo_path: Path) -> Config:
     p = config_yaml_path(todo_path)
     if not p.exists():
-        return Config()
+        return Config(colors=dict(_DEFAULT_COLORS))
     raw = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
     if not isinstance(raw, dict):
-        return Config()
+        return Config(colors=dict(_DEFAULT_COLORS))
     port = raw.get("port")
     if port is not None and not isinstance(port, int):
         port = None
-    extra = {k: v for k, v in raw.items() if k != "port"}
-    return Config(port=port, extra=extra)
+    colors_raw = raw.get("colors") or {}
+    colors = dict(_DEFAULT_COLORS)
+    if isinstance(colors_raw, dict):
+        for k, v in colors_raw.items():
+            if isinstance(k, str) and isinstance(v, str):
+                colors[k] = v
+    theme = raw.get("theme")
+    if theme not in ("dark", "light"):
+        theme = "dark"
+    known = {"port", "colors", "theme"}
+    extra = {k: v for k, v in raw.items() if k not in known}
+    return Config(port=port, colors=colors, theme=theme, extra=extra)
 
 
 def sync(doc: ParsedDocument, todo_path: Path) -> ParsedDocument:

@@ -165,6 +165,24 @@ def test_h1_ignored():
     assert doc.projects[0].name == "p"
 
 
+def test_title_captured():
+    text = "# My Project\n\n## p\n- [ ] (aaaaa): x\n"
+    doc = parse_text(text)
+    assert doc.title == "My Project"
+
+
+def test_only_first_h1_is_title():
+    text = "# First\n\n# Second\n\n## p\n"
+    doc = parse_text(text)
+    assert doc.title == "First"
+
+
+def test_no_h1_no_title():
+    text = "## p\n- [ ] (aaaaa): x\n"
+    doc = parse_text(text)
+    assert doc.title is None
+
+
 def test_mixed_indent_tabs_spaces():
     text = (
         "## p\n"

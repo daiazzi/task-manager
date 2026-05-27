@@ -35,6 +35,7 @@ class ParsedDocument:
     tasks_by_hash: dict[str, Task] = field(default_factory=dict)
     children: dict[str, list[Task]] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
+    title: str | None = None
 
     def children_of(self, parent_hash: str) -> list[Task]:
         return self.children.get(parent_hash, [])
@@ -56,4 +57,6 @@ class TaskMetadata:
 @dataclass(slots=True)
 class Config:
     port: int | None = None
+    colors: dict[str, str] = field(default_factory=dict)
+    theme: str = "dark"
     extra: dict = field(default_factory=dict)

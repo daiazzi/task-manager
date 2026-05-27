@@ -1079,7 +1079,7 @@ packages:
 - pypi: ./
   name: task-manager
   version: 0.1.0
-  sha256: 03284d7c566a6b8e03b17a245de73c587110ab6c39980dea7f5b1d9bc25fa6f8
+  sha256: 3ed4ec957c907f66e0b4f90f650bee9d9e017632ac2999e010b1aa6874b62b28
   requires_dist:
   - rich-click>=1.9.7,<2
   - starlette>=0.40,<1

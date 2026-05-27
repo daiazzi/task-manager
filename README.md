@@ -1,17 +1,18 @@
-# task-manager
+# tsk
 
 Local-first task manager for dev/data projects. Your `TODO.md` stays the
 single human-edited, gittable source of truth; the manager adds dates and a
 Gantt/Calendar view backed by a sidecar YAML file.
 
 ```
-$ task-manager path/to/TODO.md
-task-manager: serving /abs/path/to/TODO.md
-task-manager: open http://127.0.0.1:42117
+$ tsk path/to/TODO.md
+tsk: serving /abs/path/to/TODO.md
+tsk: open http://127.0.0.1:42117
 ```
 
 The web UI opens in your default browser (or paste the URL into the VS Code
-Simple Browser). Ctrl-C stops the server.
+Simple Browser). Ctrl-C stops the server. Run it detached with `tsk up
+<path>` / `tsk down <path>`.
 
 ## What it does
 
@@ -24,6 +25,8 @@ Simple Browser). Ctrl-C stops the server.
   survive edits to the task text.
 - Filters by project (multi-select chips).
 - Toggles between Gantt and Calendar views.
+- Light/dark theme toggle.
+- Per-tag colours from `config.yaml`.
 
 The markdown is the source of truth for: which tasks exist, hierarchy,
 project, tag, description, done state. The yaml owns dates and timestamps.
@@ -31,7 +34,7 @@ project, tag, description, done state. The yaml owns dates and timestamps.
 ## TODO.md format
 
 ```markdown
-# Project title              <-- ignored
+# Project title              <-- shown in the UI header
 
 ## backend                   <-- starts a project
 
@@ -45,37 +48,40 @@ project, tag, description, done state. The yaml owns dates and timestamps.
 - [ ] ui: Design the layout      <-- unstamped; gets a hash on next run
 ```
 
+- H1 (`#`) is the document title — shown in the UI header.
 - H2 (`##`) headings are projects. Tasks belong to the most recent one.
 - A task is `- [ ]` (or `- [x]`, `*`, mixed) followed by an optional `tag`,
   `(hash)`, `:`, then the description.
 - The hash is mandatory in the canonical form; unstamped tasks are accepted
-  and stamped on the next `task-manager` or `task-manager init` run.
+  and stamped on the next `tsk` or `tsk init` run.
 - Tag is an optional free-form category.
 - Subtasks are indented deeper than their parent. Max 2 levels.
 - Continuation lines (non-checkbox content under a task) become part of its
   description.
 
-Full grammar: `task-manager help format`.
+Full grammar: `tsk help format`.
 
 ## Install
 
 ```bash
 # clone, then in the repo:
 pixi install
-pixi run task-manager --help
+pixi run tsk --help
 ```
 
-The CLI is exposed as `task-manager` inside the pixi environment.
+The CLI is exposed as `tsk` inside the pixi environment.
 
 ## CLI
 
 | Command | What it does |
 |---|---|
-| `task-manager <path>` | Auto-init, start the web UI, open the browser. |
-| `task-manager init <path>` | Create the sidecar dir and stamp hashes. Does not start the server. |
-| `task-manager task add <path> -d "<desc>" [-t tag] [-p parent_hash] [-P project] [-s YYYY-MM-DD] [-e YYYY-MM-DD] [--duration N]` | Add a task to the markdown. |
-| `task-manager task remove <path> <hash>` | Remove a task (and its subtasks). |
-| `task-manager help format` | Print the TODO.md format spec. |
+| `tsk <path>` | Auto-init, start the web UI in foreground, open the browser. Ctrl-C to stop. |
+| `tsk up <path>` | Start the server detached (background). Writes pid/url into the sidecar. |
+| `tsk down <path>` | Stop the daemon for that TODO. |
+| `tsk init <path>` | Create the sidecar dir, copy `agent.md`, stamp hashes. Creates the file if missing (parent dir must exist). |
+| `tsk task add <path> -d "<desc>" [-t tag] [-p parent_hash] [-P project] [-s YYYY-MM-DD] [-e YYYY-MM-DD] [--duration N]` | Add a task to the markdown. |
+| `tsk task remove <path> <hash>` | Remove a task (and its subtasks). |
+| `tsk help format` | Print the TODO.md format spec. |
 
 Date flags for `task add`: pass at most two of `--start-date`, `--end-date`,
 `--duration` (days, inclusive). The third is derived.
@@ -87,11 +93,32 @@ For `/path/to/myTODO.md` the manager uses:
 ```
 /path/to/.myTODO.md.dir/
     tasks.yaml      # dates + timestamps, one row per hash
-    config.yaml     # { port: null }    -- override the auto-picked port
+    config.yaml     # port, theme, tag colours
+    agent.md        # instructions for coding assistants editing TODO.md
+    daemon.pid      # only while detached (written by `tsk up`)
+    daemon.url
+    daemon.log
+```
+
+`config.yaml` shape:
+
+```yaml
+port: null               # int (1024-65535) or null for auto
+theme: dark              # "dark" or "light"
+colors:
+  default: "#7aa2f7"
+  api: "#9ece6a"
+  db:  "#f7768e"
 ```
 
 Add `*/.*.dir/` to your `.gitignore` if you don't want to commit the
 metadata, or commit it if you do — both are valid workflows.
+
+## Agents
+
+`tsk init` drops a `agent.md` into the sidecar. Point your coding assistant
+at it (the file documents the TODO.md format, what edits are safe, and
+recommends `tsk task add/remove` for non-trivial changes).
 
 ## Development
 
@@ -109,7 +136,7 @@ pixi add --feature dev <pkg>
 pixi run pytest
 
 # run the CLI in development
-pixi run task-manager <path/to/TODO.md>
+pixi run tsk <path/to/TODO.md>
 
 # enter the env interactively
 pixi shell
@@ -122,10 +149,11 @@ src/task_manager/
     models.py          # dataclasses
     parser.py          # TODO.md → ParsedDocument
     writer.py          # mutate TODO.md (stamp, add, remove)
-    store.py           # tasks.yaml + config.yaml
+    store.py           # tasks.yaml + config.yaml + agent.md
+    daemon.py          # detached server lifecycle (tsk up/down)
     cli.py             # rich-click commands
     server.py          # Starlette app
-    static/            # HTML + CSS + JS
+    static/            # HTML + CSS + JS + agent.md template
 tests/                 # pytest suite
 docs/                  # requirements, technical design, specifications, tasks
 ```

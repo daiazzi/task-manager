@@ -77,3 +77,14 @@ def test_index_html(tmp_path: Path):
     r = client.get("/")
     assert r.status_code == 200
     assert "<html" in r.text.lower()
+
+
+def test_api_includes_title_and_colors(tmp_path: Path):
+    p = tmp_path / "TODO.md"
+    p.write_text("# My Project\n\n## p\n- [ ] (aaaaa): x\n")
+    ensure_sidecar(p)
+    client = TestClient(build_app(p))
+    data = client.get("/api/tasks").json()
+    assert data["title"] == "My Project"
+    assert "default" in data["colors"]
+    assert data["theme"] in ("dark", "light")
