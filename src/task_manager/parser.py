@@ -64,6 +64,7 @@ def parse_text(text: str, path: Path | None = None) -> ParsedDocument:
     tasks_by_hash: dict[str, Task] = {}
     children: dict[str, list[Task]] = {}
     warnings: list[str] = []
+    title: str | None = None
 
     # Nesting stack: list of (indent, task) at each level. The first element is
     # the level-1 ancestor (top-level), the second would be level-2 (subtask).
@@ -119,7 +120,11 @@ def parse_text(text: str, path: Path | None = None) -> ParsedDocument:
                         name = NO_PROJECT
                     current_project = get_or_create_project(name)
                     stack.clear()
-                # H1, H3+, etc → just end any pending description, no project change
+                elif hash_count == 1 and title is None:
+                    text_title = stripped[hash_count:].strip()
+                    if text_title:
+                        title = text_title
+                # H3+ → just end any pending description, no project change
                 continue
 
         # Checkbox bullet
@@ -194,6 +199,7 @@ def parse_text(text: str, path: Path | None = None) -> ParsedDocument:
         tasks_by_hash=tasks_by_hash,
         children=children,
         warnings=warnings,
+        title=title,
     )
 
 

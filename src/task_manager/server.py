@@ -24,6 +24,7 @@ STATIC_DIR = Path(__file__).parent / "static"
 
 
 def _serialise(doc: ParsedDocument, todo_path: Path) -> dict:
+    cfg = store.load_config(todo_path)
     def task_dict(task) -> dict:
         return {
             "hash": task.hash,
@@ -41,6 +42,9 @@ def _serialise(doc: ParsedDocument, todo_path: Path) -> dict:
 
     return {
         "todo_path": str(todo_path),
+        "title": doc.title,
+        "colors": cfg.colors,
+        "theme": cfg.theme,
         "projects": [
             {"name": p.name, "tasks": [task_dict(t) for t in p.tasks]} for p in doc.projects
         ],
@@ -164,8 +168,8 @@ def run(
     app = build_app(todo_path)
     url = f"http://{host}:{port}"
 
-    print(f"task-manager: serving {todo_path}")
-    print(f"task-manager: open {url}")
+    print(f"tsk: serving {todo_path}")
+    print(f"tsk: open {url}")
 
     if open_browser:
         threading.Timer(0.5, lambda: webbrowser.open(url)).start()
@@ -176,4 +180,4 @@ def run(
         server.run()
     except KeyboardInterrupt:
         pass
-    print("task-manager: stopped")
+    print("tsk: stopped")

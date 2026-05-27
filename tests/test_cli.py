@@ -21,6 +21,26 @@ def test_init_creates_sidecar_and_stamps(tmp_path: Path):
     assert len(doc.tasks_by_hash) == 2
 
 
+def test_init_creates_missing_file(tmp_path: Path):
+    p = tmp_path / "fresh.md"
+    assert not p.exists()
+    runner = CliRunner()
+    result = runner.invoke(cli, ["init", str(p)])
+    assert result.exit_code == 0, result.output
+    assert p.exists()
+    text = p.read_text()
+    assert "# fresh" in text
+    assert "## Tasks" in text
+
+
+def test_init_errors_on_missing_parent(tmp_path: Path):
+    p = tmp_path / "missing-dir" / "TODO.md"
+    runner = CliRunner()
+    result = runner.invoke(cli, ["init", str(p)])
+    assert result.exit_code != 0
+    assert "Parent directory does not exist" in result.output
+
+
 def test_task_add_top_level(tmp_path: Path):
     p = tmp_path / "TODO.md"
     p.write_text("## p\n- [ ] (a4f9c): existing\n")

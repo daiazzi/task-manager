@@ -2,12 +2,15 @@
 
 const state = {
   todoPath: '',
+  title: null,
+  colors: {},
   projects: [],
   warnings: [],
   activeProjects: new Set(),
   view: 'gantt',
   showCompleted: true,
   calendarMonth: null,
+  theme: 'dark',
 };
 
 // ---------- helpers ----------
@@ -25,6 +28,8 @@ function loadPrefs() {
     if (v === 'gantt' || v === 'calendar') state.view = v;
     const sc = localStorage.getItem(storageKey('show-completed'));
     if (sc !== null) state.showCompleted = sc === '1';
+    const th = localStorage.getItem(storageKey('theme'));
+    if (th === 'light' || th === 'dark') state.theme = th;
   } catch (e) {
     /* localStorage unavailable */
   }
@@ -34,7 +39,14 @@ function savePrefs() {
   try {
     localStorage.setItem(storageKey('view'), state.view);
     localStorage.setItem(storageKey('show-completed'), state.showCompleted ? '1' : '0');
+    localStorage.setItem(storageKey('theme'), state.theme);
   } catch (e) {}
+}
+
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', state.theme);
+  const btn = document.querySelector('#theme-btn');
+  if (btn) btn.textContent = state.theme === 'dark' ? '☾' : '☀';
 }
 
 function parseDate(s) {
@@ -65,6 +77,21 @@ function dayDiff(a, b) {
 function todayUTC() {
   const now = new Date();
   return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+}
+
+function colorFor(tag) {
+  const c = state.colors || {};
+  if (tag && c[tag]) return c[tag];
+  return c.default || '#7aa2f7';
+}
+
+function withAlpha(hex, alpha) {
+  // hex like #rrggbb → rgba(r,g,b,a)
+  if (!hex || hex[0] !== '#' || hex.length !== 7) return hex;
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 function escapeHtml(s) {
@@ -118,6 +145,8 @@ async function postDates(hash, start, end) {
 
 function applyData(data) {
   state.todoPath = data.todo_path || '';
+  state.title = data.title || null;
+  state.colors = data.colors || {};
   state.projects = data.projects || [];
   state.warnings = data.warnings || [];
   // Initialise active projects on first load only
@@ -158,6 +187,7 @@ function visibleTasks() {
 
 function render() {
   renderWarnings();
+  renderBrand();
   renderProjectChips();
   renderTodoPath();
   renderViewToggle();
@@ -176,6 +206,10 @@ function render() {
 
 function renderTodoPath() {
   $('#todo-path').textContent = state.todoPath;
+}
+
+function renderBrand() {
+  $('#brand').textContent = state.title || 'tsk';
 }
 
 function renderViewToggle() {
@@ -253,17 +287,29 @@ function renderTaskRow(t, isSubtask) {
 
   const check = document.createElement('div');
   check.className = 'task-check' + (t.done ? ' done' : '');
-  check.textContent = t.done ? '[x]' : '[ ]';
+  check.title = t.done ? 'done' : 'not done';
   row.appendChild(check);
 
   const meta = document.createElement('div');
   meta.className = 'task-meta';
   const main = document.createElement('div');
   main.className = 'task-desc';
-  let extras = '';
-  if (t.tag) extras += `<span class="task-tag">${escapeHtml(t.tag)}</span>`;
-  extras += `<span class="task-hash">${escapeHtml(t.hash)}</span>`;
-  main.innerHTML = extras + escapeHtml(firstLine(t.description));
+  if (t.tag) {
+    const tagEl = document.createElement('span');
+    tagEl.className = 'task-tag';
+    tagEl.textContent = t.tag;
+    const c = colorFor(t.tag);
+    tagEl.style.color = c;
+    tagEl.style.background = withAlpha(c, 0.18);
+    main.appendChild(tagEl);
+  }
+  const hashEl = document.createElement('span');
+  hashEl.className = 'task-hash';
+  hashEl.textContent = t.hash;
+  main.appendChild(hashEl);
+  const descEl = document.createElement('span');
+  descEl.textContent = firstLine(t.description);
+  main.appendChild(descEl);
   meta.appendChild(main);
   const restDesc = restLines(t.description);
   if (restDesc) {
@@ -386,6 +432,11 @@ function renderGantt() {
       bar.className = 'gantt-bar' + (t.done ? ' done' : '');
       bar.style.left = x0 + 2 + 'px';
       bar.style.width = w + 'px';
+      if (!t.done) {
+        const c = colorFor(t.tag);
+        bar.style.background = withAlpha(c, 0.4);
+        bar.style.borderColor = c;
+      }
       bar.title = `${t.hash} ${t.description}${t.start ? `\nstart: ${t.start}` : ''}${t.end ? `\nend: ${t.end}` : ''}`;
       bar.textContent = (t.tag ? `${t.tag} ` : '') + firstLine(t.description);
       row.appendChild(bar);
@@ -485,6 +536,11 @@ function renderCalendar() {
         pill.className = 'calendar-pill' + (t.done ? ' done' : '');
         pill.textContent = (t.tag ? `${t.tag} ` : '') + firstLine(t.description);
         pill.title = `${t.hash} — ${t.description}`;
+        if (!t.done) {
+          const c = colorFor(t.tag);
+          pill.style.background = withAlpha(c, 0.25);
+          pill.style.borderLeftColor = c;
+        }
         pill.addEventListener('click', () => {
           const row = document.querySelector(`.task-row[data-hash="${t.hash}"]`);
           if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -527,11 +583,19 @@ async function init() {
     savePrefs();
     render();
   });
+  $('#theme-btn').addEventListener('click', () => {
+    state.theme = state.theme === 'dark' ? 'light' : 'dark';
+    applyTheme();
+    savePrefs();
+  });
 
   try {
     const data = await fetchTasks();
     state.todoPath = data.todo_path || '';
+    // Server config provides the default theme; localStorage overrides.
+    if (data.theme === 'light' || data.theme === 'dark') state.theme = data.theme;
     loadPrefs();
+    applyTheme();
     applyData(data);
     render();
   } catch (e) {

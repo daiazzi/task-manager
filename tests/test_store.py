@@ -136,3 +136,40 @@ def test_load_config_with_port(tmp_path: Path):
     (sidecar_dir(p) / "config.yaml").write_text("port: 8421\n")
     cfg = load_config(p)
     assert cfg.port == 8421
+
+
+def test_load_config_colors(tmp_path: Path):
+    p = tmp_path / "TODO.md"
+    p.write_text("# x\n")
+    ensure_sidecar(p)
+    (sidecar_dir(p) / "config.yaml").write_text(
+        "colors:\n  default: '#000000'\n  api: '#9ece6a'\n"
+    )
+    cfg = load_config(p)
+    assert cfg.colors["default"] == "#000000"
+    assert cfg.colors["api"] == "#9ece6a"
+
+
+def test_load_config_theme(tmp_path: Path):
+    p = tmp_path / "TODO.md"
+    p.write_text("# x\n")
+    ensure_sidecar(p)
+    (sidecar_dir(p) / "config.yaml").write_text("theme: light\n")
+    assert load_config(p).theme == "light"
+
+
+def test_load_config_invalid_theme_falls_back(tmp_path: Path):
+    p = tmp_path / "TODO.md"
+    p.write_text("# x\n")
+    ensure_sidecar(p)
+    (sidecar_dir(p) / "config.yaml").write_text("theme: rainbow\n")
+    assert load_config(p).theme == "dark"
+
+
+def test_ensure_sidecar_copies_agent_md(tmp_path: Path):
+    p = tmp_path / "TODO.md"
+    p.write_text("# x\n")
+    ensure_sidecar(p)
+    agent = sidecar_dir(p) / "agent.md"
+    assert agent.exists()
+    assert "Agent instructions" in agent.read_text()
