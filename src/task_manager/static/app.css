@@ -193,6 +193,93 @@ main {
   z-index: 1;
 }
 
+.project-notes {
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elev);
+}
+
+.project-notes-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.project-notes-toggle:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.project-notes-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.6em;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.project-notes-label {
+  letter-spacing: 0.3px;
+}
+
+.project-notes-body {
+  display: none;
+  padding: 0 12px 10px;
+  gap: 8px;
+  flex-direction: column;
+}
+
+.project-notes.expanded .project-notes-body {
+  display: flex;
+}
+
+.project-note {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.project-note.markdown-body p:first-child,
+.project-note.markdown-body h1:first-child,
+.project-note.markdown-body h2:first-child,
+.project-note.markdown-body h3:first-child {
+  margin-top: 0;
+}
+
+.project-note.markdown-body p:last-child,
+.project-note.markdown-body ul:last-child {
+  margin-bottom: 0;
+}
+
+.project-note.markdown-body pre {
+  overflow-x: auto;
+  padding: 8px;
+  border-radius: 4px;
+  background: var(--bg-elev-2);
+}
+
+.project-note.markdown-body code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.92em;
+}
+
 .task-row {
   display: grid;
   grid-template-columns:
