@@ -196,6 +196,18 @@ main {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  cursor: pointer;
+  transition: border-color 80ms, transform 80ms;
+}
+
+.task-check:hover {
+  border-color: var(--accent);
+  transform: scale(1.1);
+}
+
+.task-check:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .task-check.done {

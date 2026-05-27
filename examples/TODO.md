@@ -2,19 +2,14 @@
 
 ## backend
 
-- [ ] api(35295): Build the parser
-  This task involves writing the line-by-line parser that converts
-  TODO.md into a ParsedDocument.
-
-  - It must handle continuation lines.
-  - It must support `[ ]` and `[x]` checkboxes.
-  - [ ] api(b27be): Cover edge cases
-  - [x] api(7075b): Set up the dataclasses
-- [ ] db(eb46c): Design the YAML schema
-- [x] (28975): Wire up CI
+- [x] DEV(55a3d): Build the parser
+- [ ] DEV(a7e9b): Cover edge cases
+- [x] DEV(d8ef3): Set up the dataclasses
+- [ ] DATA(3e04e): Design the YAML schema
+- [x] MISC(f383c): Wire up CI
 
 ## frontend
 
-- [ ] (7c02a): Build the Gantt view
-- [ ] ui(d107a): Render the calendar
-- [ ] (abfca): Wire date editing
+- [ ] DEV(7de1b): Build the Gantt view
+- [ ] DEV(c50dc): Render the calendar
+- [ ] COMMUNICATION(f81c4): Coordinate with design team

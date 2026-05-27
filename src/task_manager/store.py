@@ -20,11 +20,16 @@ port: null
 
 theme: dark    # "dark" or "light"
 
+# New tasks get start=today, end=today+(default_duration-1) days.
+default_duration: 1
+
 # Tag colours. The "default" entry colours tags without a specific mapping.
 colors:
   default: "#7aa2f7"
-  # api: "#9ece6a"
-  # db:  "#f7768e"
+  DEV: "#9ece6a"
+  DATA: "#e0af68"
+  COMMUNICATION: "#bb9af7"
+  MISC: "#565f89"
 """
 
 
@@ -121,9 +126,14 @@ def load_config(todo_path: Path) -> Config:
     theme = raw.get("theme")
     if theme not in ("dark", "light"):
         theme = "dark"
-    known = {"port", "colors", "theme"}
+    duration = raw.get("default_duration", 1)
+    if not isinstance(duration, int) or duration <= 0:
+        duration = 1
+    known = {"port", "colors", "theme", "default_duration"}
     extra = {k: v for k, v in raw.items() if k not in known}
-    return Config(port=port, colors=colors, theme=theme, extra=extra)
+    return Config(
+        port=port, colors=colors, theme=theme, default_duration=duration, extra=extra
+    )
 
 
 def save_config(todo_path: Path, cfg: Config) -> None:
@@ -131,6 +141,7 @@ def save_config(todo_path: Path, cfg: Config) -> None:
     body: dict = {
         "port": cfg.port,
         "theme": cfg.theme,
+        "default_duration": cfg.default_duration,
         "colors": dict(cfg.colors),
     }
     body.update(cfg.extra)
@@ -140,15 +151,22 @@ def save_config(todo_path: Path, cfg: Config) -> None:
 
 def sync(doc: ParsedDocument, todo_path: Path) -> ParsedDocument:
     """Merge yaml metadata into the parsed doc. Mutates tasks in `doc` and writes back yaml if changed."""
+    from datetime import timedelta
+
     yaml_data = load_tasks_yaml(todo_path)
+    cfg = load_config(todo_path)
     now = datetime.now().replace(microsecond=0)
+    today = now.date()
+    default_end = today + timedelta(days=max(cfg.default_duration - 1, 0))
     changed = False
 
     # Walk parsed tasks
     for h, task in doc.tasks_by_hash.items():
         meta = yaml_data.get(h)
         if meta is None:
-            meta = TaskMetadata(hash=h, created=now)
+            meta = TaskMetadata(
+                hash=h, created=now, start=today, end=default_end
+            )
             yaml_data[h] = meta
             changed = True
         else:

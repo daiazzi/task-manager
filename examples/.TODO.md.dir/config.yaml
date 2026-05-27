@@ -1,11 +1,9 @@
-# task-manager config — edit and run `tsk` to apply.
 port: null
-
-theme: dark    # "dark" or "light"
-
-# Tag colours. The "default" entry colours tags without a specific mapping.
+theme: dark
+default_duration: 3
 colors:
-  default: "#7aa2f7"
-  api: "#9ece6a"
-  db: "#f7768e"
-  ui: "#bb9af7"
+  default: '#7aa2f7'
+  DEV: '#9ece6a'
+  DATA: '#e0af68'
+  COMMUNICATION: '#bb9af7'
+  MISC: '#565f89'

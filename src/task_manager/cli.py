@@ -285,9 +285,30 @@ def task_remove(hash: str, path: Path | None) -> None:
     _console.print(f"tsk: removed ({hash}) and {len(subtasks)} subtask(s).")
 
 
-@cli.group()
-def config() -> None:
+@cli.group(invoke_without_command=True)
+@click.option(
+    "--default-duration",
+    "default_duration",
+    type=int,
+    default=None,
+    help="Set the default duration (in days) for new tasks. Uses cwd auto-resolution.",
+)
+@click.pass_context
+def config(ctx: click.Context, default_duration: int | None) -> None:
     """Inspect or modify the per-project config.yaml."""
+    if ctx.invoked_subcommand is not None:
+        return
+    if default_duration is not None:
+        if default_duration <= 0:
+            raise click.ClickException("--default-duration must be a positive integer.")
+        todo = _resolve_path(None)
+        store.ensure_sidecar(todo)
+        cfg = store.load_config(todo)
+        cfg.default_duration = default_duration
+        store.save_config(todo, cfg)
+        _console.print(f"tsk: default_duration set to [bold]{default_duration}[/bold] day(s)")
+        return
+    click.echo(ctx.get_help())
 
 
 @config.command("mode")

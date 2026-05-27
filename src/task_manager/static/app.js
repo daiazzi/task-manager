@@ -130,6 +130,19 @@ async function refresh() {
   }
 }
 
+async function postDone(hash, done) {
+  const r = await fetch(`/api/tasks/${hash}/done`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ done }),
+  });
+  if (!r.ok) {
+    const data = await r.json().catch(() => ({ error: 'toggle failed' }));
+    throw new Error(data.error || 'toggle failed');
+  }
+  return r.json();
+}
+
 async function postDates(hash, start, end) {
   const r = await fetch(`/api/tasks/${hash}/dates`, {
     method: 'POST',
@@ -287,7 +300,31 @@ function renderTaskRow(t, isSubtask) {
 
   const check = document.createElement('div');
   check.className = 'task-check' + (t.done ? ' done' : '');
-  check.title = t.done ? 'done' : 'not done';
+  check.title = t.done ? 'Click to mark not done' : 'Click to mark done';
+  check.setAttribute('role', 'checkbox');
+  check.setAttribute('aria-checked', String(t.done));
+  check.tabIndex = 0;
+  const toggleDone = async () => {
+    if (check.dataset.busy === '1') return;
+    check.dataset.busy = '1';
+    const desired = !t.done;
+    try {
+      const data = await postDone(t.hash, desired);
+      applyData(data);
+      render();
+    } catch (e) {
+      toast(e.message, 'error');
+    } finally {
+      delete check.dataset.busy;
+    }
+  };
+  check.addEventListener('click', toggleDone);
+  check.addEventListener('keydown', (e) => {
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      toggleDone();
+    }
+  });
   row.appendChild(check);
 
   const meta = document.createElement('div');

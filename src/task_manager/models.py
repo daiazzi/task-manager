@@ -59,4 +59,5 @@ class Config:
     port: int | None = None
     colors: dict[str, str] = field(default_factory=dict)
     theme: str = "dark"
+    default_duration: int = 1
     extra: dict = field(default_factory=dict)

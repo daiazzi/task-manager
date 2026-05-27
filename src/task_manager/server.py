@@ -138,11 +138,31 @@ def build_app(todo_path: Path) -> Starlette:
             }
         )
 
+    async def post_done(request: Request) -> Response:
+        hash_ = request.path_params["hash"]
+        body = await request.body()
+        try:
+            data = json.loads(body) if body else {}
+        except json.JSONDecodeError:
+            return JSONResponse({"error": "Invalid JSON body."}, status_code=400)
+        if "done" not in data or not isinstance(data["done"], bool):
+            return JSONResponse({"error": "Expected JSON body {\"done\": bool}."}, status_code=400)
+
+        text = todo_path.read_text(encoding="utf-8")
+        try:
+            new_text = writer_mod.set_done(text, hash_, data["done"])
+        except KeyError:
+            return JSONResponse({"error": f"No task with hash '{hash_}'."}, status_code=404)
+        todo_path.write_text(new_text, encoding="utf-8")
+        doc = _reload(todo_path)
+        return JSONResponse(_serialise(doc, todo_path))
+
     routes = [
         Route("/", index),
         Route("/api/tasks", get_tasks),
         Route("/api/refresh", post_refresh, methods=["POST"]),
         Route("/api/tasks/{hash}/dates", post_dates, methods=["POST"]),
+        Route("/api/tasks/{hash}/done", post_done, methods=["POST"]),
         Mount("/static", app=StaticFiles(directory=str(STATIC_DIR)), name="static"),
     ]
 

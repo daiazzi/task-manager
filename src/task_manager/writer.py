@@ -91,6 +91,26 @@ def insert_task(
     return eol.join(lines)
 
 
+def set_done(text: str, hash: str, done: bool) -> str:
+    """Flip the checkbox for the bullet carrying `hash`. Raises KeyError if not found."""
+    lf_text, eol = _normalise(text)
+    lines = lf_text.split("\n")
+    target = f"({hash})"
+    for i, line in enumerate(lines):
+        m = _BULLET_RE.match(line)
+        if not m:
+            continue
+        if target not in m.group("body"):
+            continue
+        indent = m.group("indent")
+        marker = m.group("marker")
+        body = m.group("body")
+        new_check = "x" if done else " "
+        lines[i] = f"{indent}{marker} [{new_check}] {body}".rstrip()
+        return eol.join(lines)
+    raise KeyError(hash)
+
+
 def remove_task(text: str, hash: str) -> str:
     """Remove a task bullet (and any subtree if it's a parent)."""
     lf_text, eol = _normalise(text)
