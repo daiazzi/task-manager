@@ -91,6 +91,58 @@ def insert_task(
     return eol.join(lines)
 
 
+def reorder_tasks(text: str, order: list[str]) -> str:
+    """Reorder a contiguous group of sibling task blocks according to `order`.
+
+    Each hash in `order` must point to a bullet in the text, and the blocks
+    (bullet + its description/subtasks up to the next same-or-shallower
+    boundary) must be contiguous with no foreign content between them.
+    """
+    lf_text, eol = _normalise(text)
+    lines = lf_text.split("\n")
+
+    blocks: dict[str, tuple[int, int]] = {}
+    for h in order:
+        idx, _ = _find_bullet_by_hash(lines, h)
+        if idx is None:
+            raise KeyError(h)
+        s, e = _block_extent(lines, idx)
+        blocks[h] = (s, e)
+
+    sorted_ranges = sorted(blocks.values())
+    region_start = sorted_ranges[0][0]
+    region_end = sorted_ranges[-1][1]
+    cursor = region_start
+    for s, e in sorted_ranges:
+        if s != cursor:
+            raise ValueError(f"tasks are not contiguous near line {cursor + 1}")
+        cursor = e
+
+    new_lines = lines[:region_start]
+    for h in order:
+        s, e = blocks[h]
+        new_lines.extend(lines[s:e])
+    new_lines.extend(lines[region_end:])
+    return eol.join(new_lines)
+
+
+def _block_extent(lines: list[str], start_idx: int) -> tuple[int, int]:
+    """Range [start, end) of lines belonging to the task at start_idx."""
+    bullet = _BULLET_RE.match(lines[start_idx])
+    assert bullet is not None
+    base_indent = _indent_width(bullet.group("indent"))
+    end = start_idx + 1
+    while end < len(lines):
+        ln = lines[end]
+        if _is_h2(ln):
+            break
+        m = _BULLET_RE.match(ln)
+        if m and _indent_width(m.group("indent")) <= base_indent:
+            break
+        end += 1
+    return start_idx, end
+
+
 def set_done(text: str, hash: str, done: bool) -> str:
     """Flip the checkbox for the bullet carrying `hash`. Raises KeyError if not found."""
     lf_text, eol = _normalise(text)

@@ -9,8 +9,10 @@ const state = {
   activeProjects: new Set(),
   view: 'gantt',
   showCompleted: true,
+  showDates: true,
   calendarMonth: null,
   theme: 'dark',
+  leftPaneWidth: 480,
 };
 
 // ---------- helpers ----------
@@ -28,8 +30,12 @@ function loadPrefs() {
     if (v === 'gantt' || v === 'calendar') state.view = v;
     const sc = localStorage.getItem(storageKey('show-completed'));
     if (sc !== null) state.showCompleted = sc === '1';
+    const sd = localStorage.getItem(storageKey('show-dates'));
+    if (sd !== null) state.showDates = sd === '1';
     const th = localStorage.getItem(storageKey('theme'));
     if (th === 'light' || th === 'dark') state.theme = th;
+    const lw = parseInt(localStorage.getItem(storageKey('left-w')) || '', 10);
+    if (Number.isFinite(lw) && lw >= 240 && lw <= 1200) state.leftPaneWidth = lw;
   } catch (e) {
     /* localStorage unavailable */
   }
@@ -39,8 +45,18 @@ function savePrefs() {
   try {
     localStorage.setItem(storageKey('view'), state.view);
     localStorage.setItem(storageKey('show-completed'), state.showCompleted ? '1' : '0');
+    localStorage.setItem(storageKey('show-dates'), state.showDates ? '1' : '0');
     localStorage.setItem(storageKey('theme'), state.theme);
+    localStorage.setItem(storageKey('left-w'), String(state.leftPaneWidth));
   } catch (e) {}
+}
+
+function applyDatesAttr() {
+  document.documentElement.setAttribute('data-dates', state.showDates ? 'on' : 'off');
+}
+
+function applyLeftPaneWidth() {
+  document.documentElement.style.setProperty('--left-pane-w', state.leftPaneWidth + 'px');
 }
 
 function applyTheme() {
@@ -128,6 +144,19 @@ async function refresh() {
     btn.disabled = false;
     btn.textContent = 'Refresh';
   }
+}
+
+async function postReorder(project, parentHash, order) {
+  const r = await fetch('/api/tasks/reorder', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ project, parent_hash: parentHash, order }),
+  });
+  if (!r.ok) {
+    const data = await r.json().catch(() => ({ error: 'reorder failed' }));
+    throw new Error(data.error || 'reorder failed');
+  }
+  return r.json();
 }
 
 async function postDone(hash, done) {
@@ -297,6 +326,16 @@ function renderTaskRow(t, isSubtask) {
   const row = document.createElement('div');
   row.className = 'task-row' + (isSubtask ? ' subtask' : '') + (t.done ? ' done' : '');
   row.dataset.hash = t.hash;
+  row.dataset.parent = t.parent_hash || '';
+  row.dataset.project = t.project;
+
+  const handle = document.createElement('div');
+  handle.className = 'drag-handle';
+  handle.draggable = true;
+  handle.title = 'Drag to reorder';
+  handle.textContent = '⋮⋮';
+  attachDragHandlers(handle, row, t);
+  row.appendChild(handle);
 
   const check = document.createElement('div');
   check.className = 'task-check' + (t.done ? ' done' : '');
@@ -357,19 +396,33 @@ function renderTaskRow(t, isSubtask) {
   }
   row.appendChild(meta);
 
-  const dates = document.createElement('div');
-  dates.className = 'date-inputs';
+  const startCell = document.createElement('div');
+  startCell.className = 'date-cell';
   const start = document.createElement('input');
   start.type = 'date';
   start.value = t.start || '';
   start.title = 'start';
+  startCell.appendChild(start);
+  row.appendChild(startCell);
+
+  const endCell = document.createElement('div');
+  endCell.className = 'date-cell';
   const end = document.createElement('input');
   end.type = 'date';
   end.value = t.end || '';
   end.title = 'end';
-  dates.appendChild(start);
-  dates.appendChild(end);
-  row.appendChild(dates);
+  endCell.appendChild(end);
+  row.appendChild(endCell);
+
+  // Open modal when clicking on the row (but not on interactive controls).
+  row.addEventListener('click', (e) => {
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (e.target.closest('.task-check')) return;
+    if (e.target.closest('.drag-handle')) return;
+    if (e.target.closest('.date-cell')) return;
+    if (tag === 'input' || tag === 'button' || tag === 'a') return;
+    openTaskModal(t);
+  });
 
   let prev = { start: t.start, end: t.end };
   const onChange = async () => {
@@ -393,6 +446,294 @@ function renderTaskRow(t, isSubtask) {
   end.addEventListener('change', onChange);
 
   return row;
+}
+
+// ---------- drag-and-drop reorder ----------
+
+let dragState = null;
+
+function attachDragHandlers(handle, row, task) {
+  handle.addEventListener('dragstart', (e) => {
+    dragState = {
+      hash: task.hash,
+      project: task.project,
+      parentHash: task.parent_hash || null,
+      row,
+    };
+    row.classList.add('dragging');
+    handle.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', task.hash);
+  });
+  handle.addEventListener('dragend', () => {
+    row.classList.remove('dragging');
+    handle.classList.remove('dragging');
+    document.querySelectorAll('.drag-over-top, .drag-over-bottom')
+      .forEach((el) => el.classList.remove('drag-over-top', 'drag-over-bottom'));
+    dragState = null;
+  });
+
+  row.addEventListener('dragover', (e) => {
+    if (!dragState) return;
+    // Only allow within the same project + parent
+    if (row.dataset.project !== dragState.project) return;
+    if ((row.dataset.parent || null) !== (dragState.parentHash || null)) return;
+    if (row.dataset.hash === dragState.hash) return;
+    e.preventDefault();
+    const rect = row.getBoundingClientRect();
+    const before = e.clientY < rect.top + rect.height / 2;
+    row.classList.toggle('drag-over-top', before);
+    row.classList.toggle('drag-over-bottom', !before);
+  });
+
+  row.addEventListener('dragleave', () => {
+    row.classList.remove('drag-over-top', 'drag-over-bottom');
+  });
+
+  row.addEventListener('drop', async (e) => {
+    if (!dragState) return;
+    if (row.dataset.project !== dragState.project) return;
+    if ((row.dataset.parent || null) !== (dragState.parentHash || null)) return;
+    if (row.dataset.hash === dragState.hash) return;
+    e.preventDefault();
+    const rect = row.getBoundingClientRect();
+    const before = e.clientY < rect.top + rect.height / 2;
+    const newOrder = computeReorder(
+      dragState.project,
+      dragState.parentHash,
+      dragState.hash,
+      row.dataset.hash,
+      before,
+    );
+    row.classList.remove('drag-over-top', 'drag-over-bottom');
+    if (!newOrder) return;
+    try {
+      const data = await postReorder(dragState.project, dragState.parentHash, newOrder);
+      applyData(data);
+      render();
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  });
+}
+
+function computeReorder(project, parentHash, movedHash, targetHash, before) {
+  // Build the current sibling list of (movedHash, ...siblings) under parentHash in project.
+  const proj = state.projects.find((p) => p.name === project);
+  if (!proj) return null;
+  let siblings;
+  if (parentHash) {
+    const parent = proj.tasks.find((t) => t.hash === parentHash);
+    if (!parent) return null;
+    siblings = parent.subtasks || [];
+  } else {
+    siblings = proj.tasks;
+  }
+  const order = siblings.map((t) => t.hash);
+  const fromIdx = order.indexOf(movedHash);
+  if (fromIdx < 0) return null;
+  order.splice(fromIdx, 1);
+  let targetIdx = order.indexOf(targetHash);
+  if (targetIdx < 0) return null;
+  if (!before) targetIdx += 1;
+  order.splice(targetIdx, 0, movedHash);
+  return order;
+}
+
+// ---------- splitter ----------
+
+function initSplitter() {
+  const splitter = $('#splitter');
+  if (!splitter) return;
+  let dragging = false;
+  splitter.addEventListener('pointerdown', (e) => {
+    dragging = true;
+    splitter.setPointerCapture(e.pointerId);
+    splitter.classList.add('dragging');
+    document.body.style.userSelect = 'none';
+  });
+  splitter.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const main = $('#main').getBoundingClientRect();
+    let w = e.clientX - main.left;
+    w = Math.max(240, Math.min(1200, w));
+    state.leftPaneWidth = w;
+    applyLeftPaneWidth();
+    if (state.view === 'gantt') renderGantt();
+  });
+  splitter.addEventListener('pointerup', (e) => {
+    dragging = false;
+    splitter.classList.remove('dragging');
+    document.body.style.userSelect = '';
+    splitter.releasePointerCapture?.(e.pointerId);
+    savePrefs();
+  });
+}
+
+// ---------- modal ----------
+
+function openTaskModal(task) {
+  const host = $('#modal-host');
+  host.hidden = false;
+  host.innerHTML = '';
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.addEventListener('click', (e) => e.stopPropagation());
+
+  const header = document.createElement('div');
+  header.className = 'modal-header';
+
+  if (task.tag) {
+    const tagEl = document.createElement('span');
+    tagEl.className = 'task-tag';
+    tagEl.textContent = task.tag;
+    const c = colorFor(task.tag);
+    tagEl.style.color = c;
+    tagEl.style.background = withAlpha(c, 0.18);
+    header.appendChild(tagEl);
+  }
+  const hashEl = document.createElement('span');
+  hashEl.className = 'task-hash';
+  hashEl.textContent = task.hash;
+  header.appendChild(hashEl);
+
+  const title = document.createElement('span');
+  title.style.fontWeight = '600';
+  title.textContent = firstLine(task.description);
+  header.appendChild(title);
+
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'modal-close';
+  closeBtn.textContent = '✕';
+  closeBtn.title = 'Close (Esc)';
+  closeBtn.addEventListener('click', closeModal);
+  header.appendChild(closeBtn);
+  modal.appendChild(header);
+
+  const meta = document.createElement('div');
+  meta.className = 'modal-meta';
+  meta.innerHTML =
+    `<span><b>project</b> ${escapeHtml(task.project)}</span>` +
+    `<span><b>status</b> ${task.done ? 'done' : 'open'}</span>` +
+    (task.start ? `<span><b>start</b> ${task.start}</span>` : '') +
+    (task.end ? `<span><b>end</b> ${task.end}</span>` : '') +
+    (task.created ? `<span><b>created</b> ${task.created}</span>` : '');
+  modal.appendChild(meta);
+
+  const body = document.createElement('div');
+  body.className = 'modal-body';
+  body.innerHTML = renderMarkdown(task.description || '');
+  modal.appendChild(body);
+
+  if ((task.subtasks || []).length) {
+    const subhead = document.createElement('h3');
+    subhead.textContent = 'Subtasks';
+    body.appendChild(subhead);
+    const ul = document.createElement('ul');
+    for (const c of task.subtasks) {
+      const li = document.createElement('li');
+      li.textContent = (c.done ? '✓ ' : '○ ') + (c.tag ? `${c.tag} ` : '') + firstLine(c.description);
+      ul.appendChild(li);
+    }
+    body.appendChild(ul);
+  }
+
+  host.appendChild(modal);
+  host.addEventListener('click', closeModal, { once: true });
+}
+
+function closeModal() {
+  const host = $('#modal-host');
+  host.hidden = true;
+  host.innerHTML = '';
+}
+
+// ---------- markdown renderer (minimal subset) ----------
+
+function renderMarkdown(text) {
+  // Escape first.
+  let src = text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+  const lines = src.split('\n');
+  const out = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // Code fence
+    if (/^```/.test(line)) {
+      const code = [];
+      i++;
+      while (i < lines.length && !/^```/.test(lines[i])) {
+        code.push(lines[i]);
+        i++;
+      }
+      i++;
+      out.push('<pre><code>' + code.join('\n') + '</code></pre>');
+      continue;
+    }
+
+    // Headings
+    const h = line.match(/^(#{1,3})\s+(.*)$/);
+    if (h) {
+      const level = h[1].length;
+      out.push(`<h${level}>${inlineMd(h[2])}</h${level}>`);
+      i++;
+      continue;
+    }
+
+    // List
+    if (/^\s*[-*]\s+/.test(line)) {
+      const items = [];
+      while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) {
+        items.push(lines[i].replace(/^\s*[-*]\s+/, ''));
+        i++;
+      }
+      out.push('<ul>' + items.map((it) => `<li>${inlineMd(it)}</li>`).join('') + '</ul>');
+      continue;
+    }
+
+    // Blank line
+    if (line.trim() === '') {
+      i++;
+      continue;
+    }
+
+    // Paragraph (collect until blank line, heading, or list)
+    const para = [];
+    while (
+      i < lines.length &&
+      lines[i].trim() !== '' &&
+      !/^(#{1,3})\s+/.test(lines[i]) &&
+      !/^\s*[-*]\s+/.test(lines[i]) &&
+      !/^```/.test(lines[i])
+    ) {
+      para.push(lines[i]);
+      i++;
+    }
+    out.push('<p>' + inlineMd(para.join('\n').replace(/\n/g, '<br>')) + '</p>');
+  }
+
+  return out.join('');
+}
+
+function inlineMd(s) {
+  // bold, italic, code, links — applied in order
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (m, txt, url) => {
+    // basic URL validation
+    if (!/^https?:|^mailto:|^#/i.test(url)) return m;
+    return `<a href="${url}" target="_blank" rel="noopener">${txt}</a>`;
+  });
+  return s;
+}
+
+function truncate(s, n) {
+  if (!s) return '';
+  if (s.length <= n) return s;
+  return s.slice(0, Math.max(0, n - 1)) + '…';
 }
 
 function firstLine(s) {
@@ -571,7 +912,8 @@ function renderCalendar() {
       if (day >= s && day <= e) {
         const pill = document.createElement('div');
         pill.className = 'calendar-pill' + (t.done ? ' done' : '');
-        pill.textContent = (t.tag ? `${t.tag} ` : '') + firstLine(t.description);
+        const desc = truncate(firstLine(t.description), 14);
+        pill.textContent = (t.tag ? `${t.tag} ` : '') + desc;
         pill.title = `${t.hash} — ${t.description}`;
         if (!t.done) {
           const c = colorFor(t.tag);
@@ -620,6 +962,14 @@ async function init() {
     savePrefs();
     render();
   });
+  $('#show-dates').addEventListener('change', (e) => {
+    state.showDates = e.target.checked;
+    applyDatesAttr();
+    savePrefs();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !$('#modal-host').hidden) closeModal();
+  });
   $('#theme-btn').addEventListener('click', () => {
     state.theme = state.theme === 'dark' ? 'light' : 'dark';
     applyTheme();
@@ -629,10 +979,13 @@ async function init() {
   try {
     const data = await fetchTasks();
     state.todoPath = data.todo_path || '';
-    // Server config provides the default theme; localStorage overrides.
     if (data.theme === 'light' || data.theme === 'dark') state.theme = data.theme;
     loadPrefs();
     applyTheme();
+    applyDatesAttr();
+    applyLeftPaneWidth();
+    $('#show-dates').checked = state.showDates;
+    initSplitter();
     applyData(data);
     render();
   } catch (e) {

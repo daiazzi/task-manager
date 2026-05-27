@@ -12,6 +12,8 @@
   --error: #f7768e;
   --ok: #9ece6a;
   --row-h: 30px;
+  --date-col-w: 110px;
+  --left-pane-w: 480px;
 }
 
 [data-theme="light"] {
@@ -140,8 +142,27 @@ button:disabled { opacity: 0.5; cursor: progress; }
 main {
   flex: 1;
   display: grid;
-  grid-template-columns: minmax(320px, 30%) 1fr;
+  grid-template-columns: var(--left-pane-w) 6px 1fr;
   min-height: 0;
+}
+
+#splitter {
+  background: var(--border);
+  cursor: col-resize;
+  position: relative;
+  transition: background 80ms;
+}
+
+#splitter::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  left: -3px;
+  right: -3px;
+}
+
+#splitter:hover, #splitter.dragging {
+  background: var(--accent);
 }
 
 .pane {
@@ -169,17 +190,71 @@ main {
 
 .task-row {
   display: grid;
-  grid-template-columns: 16px 1fr auto;
+  grid-template-columns:
+    14px           /* drag handle */
+    16px           /* checkbox */
+    1fr            /* content */
+    var(--date-col-w) /* start */
+    var(--date-col-w) /* end */;
   align-items: center;
   gap: 8px;
   padding: 5px 12px;
   border-bottom: 1px solid var(--border);
   min-height: var(--row-h);
+  cursor: default;
+}
+
+.task-row:hover {
+  background: rgba(255,255,255,0.02);
 }
 
 .task-row.subtask {
   padding-left: 32px;
   background: rgba(255,255,255,0.015);
+}
+
+[data-dates="off"] .task-row {
+  grid-template-columns: 14px 16px 1fr 0 0;
+}
+
+[data-dates="off"] .date-cell {
+  display: none;
+}
+
+.drag-handle {
+  width: 14px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1;
+  cursor: grab;
+  user-select: none;
+  opacity: 0;
+  transition: opacity 80ms;
+}
+
+.task-row:hover .drag-handle,
+.drag-handle.dragging {
+  opacity: 1;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.task-row.drag-over-top {
+  border-top: 2px solid var(--accent);
+}
+
+.task-row.drag-over-bottom {
+  border-bottom: 2px solid var(--accent);
+}
+
+.task-row.dragging {
+  opacity: 0.4;
 }
 
 .task-row.done .task-desc {
@@ -265,12 +340,12 @@ main {
   overflow: hidden;
 }
 
-.date-inputs {
+.date-cell {
   display: flex;
-  gap: 4px;
+  align-items: center;
 }
 
-.date-inputs input[type="date"] {
+.date-cell input[type="date"] {
   background: var(--bg-elev-2);
   color: var(--text);
   border: 1px solid var(--border);
@@ -278,17 +353,13 @@ main {
   padding: 2px 4px;
   font-size: 11px;
   font-family: ui-monospace, monospace;
-  width: 110px;
+  width: 100%;
 }
 
-[data-theme="dark"] .date-inputs input[type="date"] { color-scheme: dark; }
-[data-theme="light"] .date-inputs input[type="date"] { color-scheme: light; }
+[data-theme="dark"] .date-cell input[type="date"] { color-scheme: dark; }
+[data-theme="light"] .date-cell input[type="date"] { color-scheme: light; }
 
-.date-inputs {
-  flex-direction: column;
-}
-
-.date-inputs input[type="date"]:hover { border-color: var(--accent); }
+.date-cell input[type="date"]:hover { border-color: var(--accent); }
 
 /* Gantt */
 
@@ -451,6 +522,89 @@ main {
 }
 
 .warnings ul { margin: 0; padding-left: 18px; }
+
+#modal-host {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 24px 28px;
+  max-width: 720px;
+  width: 90%;
+  max-height: 80vh;
+  overflow: auto;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.4);
+}
+
+.modal-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.modal-close {
+  background: transparent;
+  border: 0;
+  color: var(--text-dim);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0;
+  margin-left: auto;
+}
+
+.modal-close:hover { color: var(--accent); }
+
+.modal-meta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 16px;
+}
+
+.modal-meta b { color: var(--text); font-weight: 500; }
+
+.modal-body {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.modal-body h1, .modal-body h2, .modal-body h3 {
+  margin-top: 1.2em;
+  margin-bottom: 0.4em;
+}
+
+.modal-body p { margin: 0.6em 0; }
+.modal-body ul, .modal-body ol { margin: 0.6em 0; padding-left: 1.4em; }
+.modal-body li { margin: 0.2em 0; }
+.modal-body code {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  background: var(--bg-elev-2);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+.modal-body pre {
+  background: var(--bg-elev-2);
+  border-radius: 4px;
+  padding: 10px 12px;
+  overflow: auto;
+}
+.modal-body pre code { background: transparent; padding: 0; }
+.modal-body a { color: var(--accent); }
 
 #toast-host {
   position: fixed;

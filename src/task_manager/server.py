@@ -138,6 +138,64 @@ def build_app(todo_path: Path) -> Starlette:
             }
         )
 
+    async def post_reorder(request: Request) -> Response:
+        body = await request.body()
+        try:
+            data = json.loads(body) if body else {}
+        except json.JSONDecodeError:
+            return JSONResponse({"error": "Invalid JSON body."}, status_code=400)
+
+        project = data.get("project")
+        parent_hash = data.get("parent_hash")
+        order = data.get("order")
+        if not isinstance(project, str):
+            return JSONResponse({"error": "Expected `project` (string)."}, status_code=400)
+        if parent_hash is not None and not isinstance(parent_hash, str):
+            return JSONResponse(
+                {"error": "Expected `parent_hash` (string or null)."}, status_code=400
+            )
+        if not isinstance(order, list) or not all(isinstance(h, str) for h in order):
+            return JSONResponse(
+                {"error": "Expected `order` (list of strings)."}, status_code=400
+            )
+
+        doc = _reload(todo_path)
+        for h in order:
+            t = doc.tasks_by_hash.get(h)
+            if t is None:
+                return JSONResponse(
+                    {"error": f"Unknown hash '{h}'."}, status_code=404
+                )
+            if t.project != project:
+                return JSONResponse(
+                    {"error": f"Hash '{h}' is not in project '{project}'."},
+                    status_code=400,
+                )
+            if (t.parent_hash or None) != (parent_hash or None):
+                return JSONResponse(
+                    {"error": f"Hash '{h}' has a different parent."}, status_code=400
+                )
+
+        if parent_hash is not None:
+            siblings = {c.hash for c in doc.children_of(parent_hash)}
+        else:
+            proj = next((p for p in doc.projects if p.name == project), None)
+            siblings = {t.hash for t in proj.tasks} if proj else set()
+        if set(order) != siblings:
+            return JSONResponse(
+                {"error": "`order` must contain exactly the sibling hashes."},
+                status_code=400,
+            )
+
+        text = todo_path.read_text(encoding="utf-8")
+        try:
+            new_text = writer_mod.reorder_tasks(text, order)
+        except (KeyError, ValueError) as e:
+            return JSONResponse({"error": str(e)}, status_code=400)
+        todo_path.write_text(new_text, encoding="utf-8")
+        doc2 = _reload(todo_path)
+        return JSONResponse(_serialise(doc2, todo_path))
+
     async def post_done(request: Request) -> Response:
         hash_ = request.path_params["hash"]
         body = await request.body()
@@ -161,6 +219,7 @@ def build_app(todo_path: Path) -> Starlette:
         Route("/", index),
         Route("/api/tasks", get_tasks),
         Route("/api/refresh", post_refresh, methods=["POST"]),
+        Route("/api/tasks/reorder", post_reorder, methods=["POST"]),
         Route("/api/tasks/{hash}/dates", post_dates, methods=["POST"]),
         Route("/api/tasks/{hash}/done", post_done, methods=["POST"]),
         Mount("/static", app=StaticFiles(directory=str(STATIC_DIR)), name="static"),

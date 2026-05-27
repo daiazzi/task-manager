@@ -21,6 +21,10 @@
         <input type="checkbox" id="show-completed" checked>
         <span>Show completed</span>
       </label>
+      <label class="toggle">
+        <input type="checkbox" id="show-dates" checked>
+        <span>Dates</span>
+      </label>
     </div>
     <div class="header-section">
       <button id="theme-btn" title="Toggle light/dark mode" aria-label="Toggle theme">☾</button>
@@ -30,13 +34,16 @@
 
   <div id="warnings" class="warnings" hidden></div>
 
-  <main>
+  <main id="main">
     <section id="task-list" class="pane"></section>
+    <div id="splitter" role="separator" aria-orientation="vertical" tabindex="0"></div>
     <section id="viz-pane" class="pane">
       <div id="gantt-view" class="view"></div>
       <div id="calendar-view" class="view" hidden></div>
     </section>
   </main>
+
+  <div id="modal-host" hidden></div>
 
   <div id="toast-host" aria-live="polite"></div>
 
