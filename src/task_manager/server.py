@@ -48,7 +48,12 @@ def _serialise(doc: ParsedDocument, todo_path: Path) -> dict:
         "text_size": cfg.text_size,
         "show_dates": cfg.show_dates,
         "projects": [
-            {"name": p.name, "tasks": [task_dict(t) for t in p.tasks]} for p in doc.projects
+            {
+                "name": p.name,
+                "notes": [{"content": n.content} for n in p.notes],
+                "tasks": [task_dict(t) for t in p.tasks],
+            }
+            for p in doc.projects
         ],
         "warnings": doc.warnings,
     }
