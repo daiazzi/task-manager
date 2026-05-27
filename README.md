@@ -73,18 +73,29 @@ The CLI is exposed as `tsk` inside the pixi environment.
 
 ## CLI
 
+`<path>` is optional on every command. When omitted, `tsk` looks in the
+current directory for an initialized `.<name>.dir/` sidecar; if exactly one
+exists it is used. Otherwise it falls back to `./TODO.md`, then errors.
+
 | Command | What it does |
 |---|---|
-| `tsk <path>` | Auto-init, start the web UI in foreground, open the browser. Ctrl-C to stop. |
-| `tsk up <path>` | Start the server detached (background). Writes pid/url into the sidecar. |
-| `tsk down <path>` | Stop the daemon for that TODO. |
-| `tsk init <path>` | Create the sidecar dir, copy `agent.md`, stamp hashes. Creates the file if missing (parent dir must exist). |
-| `tsk task add <path> -d "<desc>" [-t tag] [-p parent_hash] [-P project] [-s YYYY-MM-DD] [-e YYYY-MM-DD] [--duration N]` | Add a task to the markdown. |
-| `tsk task remove <path> <hash>` | Remove a task (and its subtasks). |
+| `tsk [path]` | Auto-init, start the web UI in foreground, open the browser. Ctrl-C to stop. |
+| `tsk up [path]` | Start the server detached (background). Writes pid/url into the sidecar. |
+| `tsk down [path]` | Stop the daemon for that TODO. |
+| `tsk init [path]` | Create the sidecar dir, copy `agent.md`, stamp hashes. Creates the file if missing (parent dir must exist). Defaults to `./TODO.md`. |
+| `tsk task add [path] -d "<desc>" [-t tag] [-p parent_hash] [-P project] [-s YYYY-MM-DD] [-e YYYY-MM-DD] [--duration N]` | Add a task to the markdown. |
+| `tsk task remove <hash> [path]` | Remove a task (and its subtasks). |
+| `tsk config mode <dark\|light> [path]` | Set the UI theme in `config.yaml`. |
+| `tsk config tag --color <COLOR> <tag> [path]` | Set a tag's colour. `<COLOR>` is a palette name or hex. |
+| `tsk config tag colors` | Print the available colour palette with swatches. |
 | `tsk help format` | Print the TODO.md format spec. |
 
 Date flags for `task add`: pass at most two of `--start-date`, `--end-date`,
 `--duration` (days, inclusive). The third is derived.
+
+Editing `config.yaml` through `tsk config` rewrites the file via YAML
+serialisation, which drops any comments. Edit the file by hand to keep
+them.
 
 ## Sidecar files
 

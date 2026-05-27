@@ -126,6 +126,18 @@ def load_config(todo_path: Path) -> Config:
     return Config(port=port, colors=colors, theme=theme, extra=extra)
 
 
+def save_config(todo_path: Path, cfg: Config) -> None:
+    """Write the config back to config.yaml. Comments in the file are lost."""
+    body: dict = {
+        "port": cfg.port,
+        "theme": cfg.theme,
+        "colors": dict(cfg.colors),
+    }
+    body.update(cfg.extra)
+    yaml_text = yaml.safe_dump(body, sort_keys=False, default_flow_style=False)
+    _atomic_write(config_yaml_path(todo_path), yaml_text)
+
+
 def sync(doc: ParsedDocument, todo_path: Path) -> ParsedDocument:
     """Merge yaml metadata into the parsed doc. Mutates tasks in `doc` and writes back yaml if changed."""
     yaml_data = load_tasks_yaml(todo_path)

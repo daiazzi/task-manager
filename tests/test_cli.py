@@ -143,7 +143,7 @@ def test_task_remove(tmp_path: Path):
     p = tmp_path / "TODO.md"
     p.write_text("## p\n- [ ] (a4f9c): keep\n- [ ] (b3d8a): remove\n")
     runner = CliRunner()
-    result = runner.invoke(cli, ["task", "remove", str(p), "b3d8a"])
+    result = runner.invoke(cli, ["task", "remove", "b3d8a", str(p)])
     assert result.exit_code == 0, result.output
     doc = parse(p)
     assert "b3d8a" not in doc.tasks_by_hash
@@ -154,7 +154,7 @@ def test_task_remove_unknown_hash(tmp_path: Path):
     p = tmp_path / "TODO.md"
     p.write_text("## p\n- [ ] (a4f9c): x\n")
     runner = CliRunner()
-    result = runner.invoke(cli, ["task", "remove", str(p), "fffff"])
+    result = runner.invoke(cli, ["task", "remove", "fffff", str(p)])
     assert result.exit_code != 0
     assert "No task with hash" in result.output
 

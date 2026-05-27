@@ -17,6 +17,55 @@ from . import store
 
 _console = Console()
 _HASH_RE = re.compile(r"^[0-9a-f]{5}$")
+_HEX_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
+
+
+PALETTE: dict[str, str] = {
+    "red":    "#f7768e",
+    "orange": "#ff9e64",
+    "yellow": "#e0af68",
+    "green":  "#9ece6a",
+    "cyan":   "#7dcfff",
+    "blue":   "#7aa2f7",
+    "purple": "#bb9af7",
+    "pink":   "#ff79c6",
+    "gray":   "#565f89",
+}
+
+
+def _discover_todo_in_cwd() -> Path:
+    cwd = Path.cwd()
+    with_sidecar: list[Path] = []
+    for entry in cwd.iterdir():
+        if entry.is_file() and entry.suffix == ".md":
+            sidecar = cwd / f".{entry.name}.dir"
+            if sidecar.is_dir():
+                with_sidecar.append(entry)
+    if len(with_sidecar) == 1:
+        return with_sidecar[0].resolve()
+    if len(with_sidecar) > 1:
+        names = ", ".join(sorted(p.name for p in with_sidecar))
+        raise click.ClickException(
+            f"Multiple initialized TODO files in {cwd}: {names}. Pass the path explicitly."
+        )
+    fallback = cwd / "TODO.md"
+    if fallback.is_file():
+        return fallback.resolve()
+    raise click.ClickException(
+        f"No TODO file found in {cwd}. Pass a path, or run `tsk init` first."
+    )
+
+
+def _resolve_path(arg: Path | None) -> Path:
+    """Resolve an optional path argument. None → discover from cwd."""
+    if arg is None:
+        return _discover_todo_in_cwd()
+    p = arg.expanduser().resolve()
+    if not p.exists():
+        raise click.ClickException(f"File not found: {p}")
+    if not p.is_file():
+        raise click.ClickException(f"Not a regular file: {p}")
+    return p
 
 
 def _load_doc(path: Path):
@@ -49,28 +98,32 @@ def cli() -> None:
 
 
 @cli.command(hidden=True)
-@click.argument("path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.argument("path", required=False, type=click.Path(dir_okay=False, path_type=Path))
 @click.option("--no-browser", is_flag=True, help="Do not open the browser on launch.")
 @click.option("--host", default="127.0.0.1", show_default=True)
 @click.option("--port", type=int, default=None, help="Override the port from config.yaml.")
-def serve(path: Path, no_browser: bool, host: str, port: int | None) -> None:
+def serve(path: Path | None, no_browser: bool, host: str, port: int | None) -> None:
     """Start the web server for the given TODO.md."""
     from .server import run
 
-    _load_doc(path)
-    cfg = store.load_config(path)
+    todo = _resolve_path(path)
+    _load_doc(todo)
+    cfg = store.load_config(todo)
     final_port = port if port is not None else cfg.port
-    run(path, host=host, port=final_port, open_browser=not no_browser)
+    run(todo, host=host, port=final_port, open_browser=not no_browser)
 
 
 @cli.command()
-@click.argument("path", type=click.Path(dir_okay=False, path_type=Path))
-def init(path: Path) -> None:
+@click.argument("path", required=False, type=click.Path(dir_okay=False, path_type=Path))
+def init(path: Path | None) -> None:
     """Create the sidecar directory and stamp hashes into the markdown.
 
+    If no PATH is given, defaults to ./TODO.md in the current directory.
     If the TODO file does not exist, it is created with a default scaffold.
     The parent directory must exist.
     """
+    if path is None:
+        path = Path.cwd() / "TODO.md"
     path = path.expanduser().resolve()
     parent = path.parent
     if not parent.is_dir():
@@ -99,15 +152,15 @@ def init(path: Path) -> None:
 
 
 @cli.command()
-@click.argument("path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.argument("path", required=False, type=click.Path(dir_okay=False, path_type=Path))
 @click.option("--host", default="127.0.0.1", show_default=True)
 @click.option("--port", type=int, default=None, help="Override the port from config.yaml.")
-def up(path: Path, host: str, port: int | None) -> None:
+def up(path: Path | None, host: str, port: int | None) -> None:
     """Start the server detached from the terminal (background)."""
-    path = path.expanduser().resolve()
-    _load_doc(path)
+    todo = _resolve_path(path)
+    _load_doc(todo)
     try:
-        pid, url = daemon_mod.start(path, host=host, port=port)
+        pid, url = daemon_mod.start(todo, host=host, port=port)
     except RuntimeError as e:
         raise click.ClickException(str(e))
     _console.print(f"tsk: started daemon (pid {pid})")
@@ -115,11 +168,11 @@ def up(path: Path, host: str, port: int | None) -> None:
 
 
 @cli.command()
-@click.argument("path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
-def down(path: Path) -> None:
+@click.argument("path", required=False, type=click.Path(dir_okay=False, path_type=Path))
+def down(path: Path | None) -> None:
     """Stop the daemon associated with the given TODO file."""
-    path = path.expanduser().resolve()
-    pid = daemon_mod.stop(path)
+    todo = _resolve_path(path)
+    pid = daemon_mod.stop(todo)
     if pid is None:
         _console.print("tsk: no daemon running")
     else:
@@ -132,7 +185,7 @@ def task() -> None:
 
 
 @task.command(name="add")
-@click.argument("path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.argument("path", required=False, type=click.Path(dir_okay=False, path_type=Path))
 @click.option("--description", "-d", required=True, help="Task description.")
 @click.option("--tag", "-t", default=None, help="Optional category tag.")
 @click.option("--parent", "-p", "parent_hash", default=None, help="Parent task hash for a subtask.")
@@ -141,7 +194,7 @@ def task() -> None:
 @click.option("--end-date", "-e", "end", type=str, default=None, help="End date YYYY-MM-DD.")
 @click.option("--duration", type=int, default=None, help="Duration in days (positive).")
 def task_add(
-    path: Path,
+    path: Path | None,
     description: str,
     tag: str | None,
     parent_hash: str | None,
@@ -151,6 +204,7 @@ def task_add(
     duration: int | None,
 ) -> None:
     """Add a new task to the markdown."""
+    path = _resolve_path(path)
     doc = _load_doc(path)
 
     if parent_hash:
@@ -206,13 +260,14 @@ def task_add(
 
 
 @task.command(name="remove")
-@click.argument("path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
 @click.argument("hash")
-def task_remove(path: Path, hash: str) -> None:
+@click.argument("path", required=False, type=click.Path(dir_okay=False, path_type=Path))
+def task_remove(hash: str, path: Path | None) -> None:
     """Remove the task with the given hash."""
     if not _HASH_RE.match(hash):
         raise click.ClickException(f"Invalid hash '{hash}': expected 5 lowercase hex chars.")
 
+    path = _resolve_path(path)
     doc = _load_doc(path)
     if hash not in doc.tasks_by_hash:
         raise click.ClickException(f"No task with hash '{hash}' in {path}.")
@@ -228,6 +283,78 @@ def task_remove(path: Path, hash: str) -> None:
     doc2 = parser_mod.parse(path)
     store.sync(doc2, path)
     _console.print(f"tsk: removed ({hash}) and {len(subtasks)} subtask(s).")
+
+
+@cli.group()
+def config() -> None:
+    """Inspect or modify the per-project config.yaml."""
+
+
+@config.command("mode")
+@click.argument("mode", type=click.Choice(["dark", "light"]))
+@click.argument("path", required=False, type=click.Path(dir_okay=False, path_type=Path))
+def config_mode(mode: str, path: Path | None) -> None:
+    """Set the UI theme (dark or light)."""
+    todo = _resolve_path(path)
+    store.ensure_sidecar(todo)
+    cfg = store.load_config(todo)
+    cfg.theme = mode
+    store.save_config(todo, cfg)
+    _console.print(f"tsk: theme set to [bold]{mode}[/bold]")
+
+
+@config.command("tag")
+@click.option("--color", "-c", default=None, help="Colour name (from palette) or hex like #abcdef.")
+@click.argument("tag_name", required=False)
+@click.argument("path", required=False, type=click.Path(dir_okay=False, path_type=Path))
+@click.pass_context
+def config_tag(
+    ctx: click.Context, color: str | None, tag_name: str | None, path: Path | None
+) -> None:
+    """Configure per-tag colours.
+
+    \b
+    Set a tag's colour:    tsk config tag --color red api
+    Show available colors: tsk config tag colors
+    """
+    if tag_name == "colors" and color is None and path is None:
+        _show_palette()
+        return
+    if not tag_name and not color:
+        click.echo(ctx.get_help())
+        return
+    if not tag_name:
+        raise click.ClickException("Tag name is required.")
+    if not color:
+        raise click.ClickException("Pass --color/-c to set the tag colour.")
+    hex_value = _resolve_color(color)
+    todo = _resolve_path(path)
+    store.ensure_sidecar(todo)
+    cfg = store.load_config(todo)
+    cfg.colors[tag_name] = hex_value
+    store.save_config(todo, cfg)
+    _console.print(
+        f"tsk: tag [bold]{tag_name}[/bold] set to "
+        f"[on {hex_value}]      [/] {hex_value}"
+    )
+
+
+def _show_palette() -> None:
+    _console.print("[bold]Available palette colours[/bold]")
+    _console.print("Use a name below or any [cyan]#rrggbb[/] hex value.\n")
+    for name, hex_value in PALETTE.items():
+        _console.print(f"  [on {hex_value}]      [/] [bold]{name:<8}[/]  {hex_value}")
+
+
+def _resolve_color(value: str) -> str:
+    if value in PALETTE:
+        return PALETTE[value]
+    if _HEX_COLOR_RE.match(value):
+        return value.lower()
+    palette_names = ", ".join(PALETTE.keys())
+    raise click.ClickException(
+        f"Invalid colour '{value}'. Use a hex like #abcdef or a palette name: {palette_names}."
+    )
 
 
 @cli.group(name="help")
@@ -312,8 +439,10 @@ def _parse_date(s: str) -> date:
 
 def main() -> None:
     argv = sys.argv[1:]
-    known_top = {"init", "task", "help", "serve", "up", "down"}
-    if argv and not argv[0].startswith("-") and argv[0] not in known_top:
+    known_top = {"init", "task", "help", "serve", "up", "down", "config"}
+    if not argv:
+        argv = ["serve"]
+    elif not argv[0].startswith("-") and argv[0] not in known_top:
         argv = ["serve"] + argv
     cli.main(args=argv, prog_name="tsk", standalone_mode=True)
 
