@@ -523,6 +523,8 @@ main {
 
 .warnings ul { margin: 0; padding-left: 18px; }
 
+#modal-host[hidden] { display: none; }
+
 #modal-host {
   position: fixed;
   inset: 0;
