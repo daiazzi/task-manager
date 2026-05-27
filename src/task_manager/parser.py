@@ -3,10 +3,13 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from .models import NO_PROJECT, ParsedDocument, Project, Task
+from .models import NO_PROJECT, Note, ParsedDocument, Project, Task
 
 
 _BULLET_RE = re.compile(r"^(?P<indent>[ \t]*)(?P<marker>[-*])\s+\[(?P<check>[ xX])\]\s*(?P<body>.*)$")
+_NOTE_BULLET_RE = re.compile(
+    r"^(?P<indent>[ \t]*)(?P<marker>[-*])\s+(?!\[(?: |x|X)\])(?P<body>.*)$"
+)
 _BODY_STAMPED_RE = re.compile(
     r"^(?:(?P<tag>[A-Za-z0-9_\-]+))?\((?P<hash>[0-9a-fA-F]{5})\)\s*:\s*(?P<desc>.*)$"
 )
@@ -73,7 +76,28 @@ def parse_text(text: str, path: Path | None = None) -> ParsedDocument:
     pending_task: Task | None = None
     pending_lines: list[str] = []
 
+    in_notes_section = False
+    pending_note_lines: list[str] | None = None
+    pending_note_indent: int | None = None
+
     placeholder_count = 0
+
+    def flush_note() -> None:
+        nonlocal pending_note_lines, pending_note_indent
+        if pending_note_lines is None or current_project is None:
+            pending_note_lines = None
+            pending_note_indent = None
+            return
+        while pending_note_lines and not pending_note_lines[-1].strip():
+            pending_note_lines.pop()
+        if pending_note_lines:
+            common = _common_leading_ws([ln for ln in pending_note_lines if ln.strip()])
+            stripped = [ln[common:] if len(ln) >= common else ln for ln in pending_note_lines]
+            content = "\n".join(stripped).strip()
+            if content:
+                current_project.notes.append(Note(content=content))
+        pending_note_lines = None
+        pending_note_indent = None
 
     def flush_description() -> None:
         nonlocal pending_task, pending_lines
@@ -115,16 +139,53 @@ def parse_text(text: str, path: Path | None = None) -> ParsedDocument:
             if hash_count >= 1 and (len(stripped) == hash_count or stripped[hash_count] in (" ", "\t")):
                 flush_description()
                 if hash_count == 2:
+                    flush_note()
+                    in_notes_section = False
                     name = stripped[hash_count:].strip()
                     if not name:
                         name = NO_PROJECT
                     current_project = get_or_create_project(name)
                     stack.clear()
+                elif hash_count == 3:
+                    section = stripped[hash_count:].strip()
+                    if section.lower() == "notes":
+                        if current_project is None:
+                            current_project = get_or_create_project(NO_PROJECT)
+                        flush_note()
+                        in_notes_section = True
+                    else:
+                        flush_note()
+                        in_notes_section = False
                 elif hash_count == 1 and title is None:
                     text_title = stripped[hash_count:].strip()
                     if text_title:
                         title = text_title
-                # H3+ → just end any pending description, no project change
+                else:
+                    flush_note()
+                    in_notes_section = False
+                continue
+
+        if in_notes_section:
+            m_note = _NOTE_BULLET_RE.match(raw)
+            if m_note:
+                indent = _indent_width(m_note.group("indent"))
+                if pending_note_lines is not None and pending_note_indent is not None:
+                    if indent > pending_note_indent:
+                        pending_note_lines.append(raw)
+                        continue
+                    if indent == pending_note_indent:
+                        flush_note()
+                body = m_note.group("body")
+                pending_note_indent = indent
+                pending_note_lines = [body] if body else []
+                continue
+            if _BULLET_RE.match(raw):
+                flush_note()
+                in_notes_section = False
+            elif pending_note_lines is not None:
+                pending_note_lines.append(raw)
+                continue
+            else:
                 continue
 
         # Checkbox bullet
@@ -192,6 +253,7 @@ def parse_text(text: str, path: Path | None = None) -> ParsedDocument:
             pending_lines.append(raw)
 
     flush_description()
+    flush_note()
 
     return ParsedDocument(
         path=path,
