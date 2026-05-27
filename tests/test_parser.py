@@ -203,3 +203,56 @@ def test_existing_hashes_extraction():
     from task_manager.parser import existing_hashes
     text = "- [ ] (a4f9c): x\n- [ ] foo(b3d8a): y\n"
     assert existing_hashes(text) == {"a4f9c", "b3d8a"}
+
+
+def test_project_notes():
+    text = (
+        "## backend\n"
+        "### Notes\n"
+        "- Chose PostgreSQL.\n"
+        "  More detail on the next line.\n"
+        "- Idea: add caching.\n"
+        "\n"
+        "- [ ] (aaaaa): build parser\n"
+    )
+    doc = parse_text(text)
+    p = doc.projects[0]
+    assert p.name == "backend"
+    assert len(p.notes) == 2
+    assert "PostgreSQL" in p.notes[0].content
+    assert "More detail" in p.notes[0].content
+    assert "caching" in p.notes[1].content
+    assert len(p.tasks) == 1
+
+
+def test_notes_case_insensitive_heading():
+    text = "## p\n### notes\n- one\n"
+    doc = parse_text(text)
+    assert len(doc.projects[0].notes) == 1
+
+
+def test_notes_star_marker():
+    text = "## p\n### Notes\n* first\n* second\n"
+    doc = parse_text(text)
+    assert [n.content for n in doc.projects[0].notes] == ["first", "second"]
+
+
+def test_other_h3_ends_notes_section():
+    text = (
+        "## p\n"
+        "### Notes\n"
+        "- kept\n"
+        "### Other\n"
+        "- not a note\n"
+        "- [ ] (aaaaa): task\n"
+    )
+    doc = parse_text(text)
+    assert len(doc.projects[0].notes) == 1
+    assert doc.projects[0].notes[0].content == "kept"
+
+
+def test_notes_without_tasks():
+    text = "## p\n### Notes\n- only notes here\n"
+    doc = parse_text(text)
+    assert len(doc.projects[0].notes) == 1
+    assert doc.projects[0].tasks == []
