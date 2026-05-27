@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "task-manager-example",
+      "runtimeExecutable": "pixi",
+      "runtimeArgs": [
+        "run",
+        "task-manager",
+        "examples/TODO.md",
+        "--no-browser",
+        "--port",
+        "38421"
+      ],
+      "port": 38421
+    }
+  ]
+}

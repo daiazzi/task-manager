@@ -1,0 +1,138 @@
+from __future__ import annotations
+
+from datetime import date
+from pathlib import Path
+
+from task_manager.parser import parse_text
+from task_manager.store import (
+    ensure_sidecar,
+    load_config,
+    load_tasks_yaml,
+    save_tasks_yaml,
+    set_dates,
+    sidecar_dir,
+    sync,
+)
+from task_manager.models import TaskMetadata
+
+
+def test_sidecar_naming(tmp_path: Path):
+    p = tmp_path / "myTODO.md"
+    assert sidecar_dir(p) == tmp_path / ".myTODO.md.dir"
+
+
+def test_ensure_sidecar_creates_files(tmp_path: Path):
+    p = tmp_path / "TODO.md"
+    p.write_text("# x\n")
+    d = ensure_sidecar(p)
+    assert d.is_dir()
+    assert (d / "tasks.yaml").exists()
+    assert (d / "config.yaml").exists()
+
+
+def test_ensure_sidecar_idempotent(tmp_path: Path):
+    p = tmp_path / "TODO.md"
+    p.write_text("# x\n")
+    ensure_sidecar(p)
+    (sidecar_dir(p) / "tasks.yaml").write_text("tasks:\n  - hash: a4f9c\n")
+    ensure_sidecar(p)
+    # The pre-existing tasks.yaml is not overwritten
+    content = (sidecar_dir(p) / "tasks.yaml").read_text()
+    assert "a4f9c" in content
+
+
+def test_save_load_roundtrip(tmp_path: Path):
+    p = tmp_path / "TODO.md"
+    p.write_text("# x\n")
+    ensure_sidecar(p)
+    from datetime import datetime
+
+    data = {
+        "a4f9c": TaskMetadata(
+            hash="a4f9c",
+            start=date(2026, 6, 1),
+            end=date(2026, 6, 10),
+            created=datetime(2026, 5, 27, 14, 0, 0),
+        )
+    }
+    save_tasks_yaml(p, data)
+    loaded = load_tasks_yaml(p)
+    assert "a4f9c" in loaded
+    assert loaded["a4f9c"].start == date(2026, 6, 1)
+    assert loaded["a4f9c"].end == date(2026, 6, 10)
+
+
+def test_sync_adds_new_yaml_entries(tmp_path: Path):
+    p = tmp_path / "TODO.md"
+    p.write_text("## p\n- [ ] (a4f9c): x\n")
+    ensure_sidecar(p)
+    doc = parse_text(p.read_text(), path=p)
+    sync(doc, p)
+    loaded = load_tasks_yaml(p)
+    assert "a4f9c" in loaded
+    assert loaded["a4f9c"].created is not None
+
+
+def test_sync_drops_missing(tmp_path: Path):
+    p = tmp_path / "TODO.md"
+    p.write_text("## p\n- [ ] (a4f9c): x\n")
+    ensure_sidecar(p)
+    sync(parse_text(p.read_text(), path=p), p)
+
+    p.write_text("## p\n")
+    sync(parse_text(p.read_text(), path=p), p)
+    loaded = load_tasks_yaml(p)
+    assert "a4f9c" not in loaded
+
+
+def test_sync_sets_completed_on_done(tmp_path: Path):
+    p = tmp_path / "TODO.md"
+    p.write_text("## p\n- [ ] (a4f9c): x\n")
+    ensure_sidecar(p)
+    sync(parse_text(p.read_text(), path=p), p)
+
+    p.write_text("## p\n- [x] (a4f9c): x\n")
+    sync(parse_text(p.read_text(), path=p), p)
+    loaded = load_tasks_yaml(p)
+    assert loaded["a4f9c"].completed is not None
+
+
+def test_sync_clears_completed_on_undone(tmp_path: Path):
+    p = tmp_path / "TODO.md"
+    p.write_text("## p\n- [x] (a4f9c): x\n")
+    ensure_sidecar(p)
+    sync(parse_text(p.read_text(), path=p), p)
+    assert load_tasks_yaml(p)["a4f9c"].completed is not None
+
+    p.write_text("## p\n- [ ] (a4f9c): x\n")
+    sync(parse_text(p.read_text(), path=p), p)
+    assert load_tasks_yaml(p)["a4f9c"].completed is None
+
+
+def test_set_dates(tmp_path: Path):
+    p = tmp_path / "TODO.md"
+    p.write_text("## p\n- [ ] (a4f9c): x\n")
+    ensure_sidecar(p)
+    sync(parse_text(p.read_text(), path=p), p)
+    meta = set_dates(p, "a4f9c", date(2026, 6, 1), date(2026, 6, 10))
+    assert meta.start == date(2026, 6, 1)
+    loaded = load_tasks_yaml(p)
+    assert loaded["a4f9c"].start == date(2026, 6, 1)
+    assert loaded["a4f9c"].end == date(2026, 6, 10)
+
+
+def test_load_config_defaults(tmp_path: Path):
+    p = tmp_path / "TODO.md"
+    p.write_text("# x\n")
+    ensure_sidecar(p)
+    cfg = load_config(p)
+    assert cfg.port is None
+
+
+def test_load_config_with_port(tmp_path: Path):
+    p = tmp_path / "TODO.md"
+    p.write_text("# x\n")
+    ensure_sidecar(p)
+    (sidecar_dir(p) / "config.yaml").write_text("port: 8421\n")
+    cfg = load_config(p)
+    assert cfg.port == 8421

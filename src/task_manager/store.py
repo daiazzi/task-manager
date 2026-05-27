@@ -1,0 +1,192 @@
+from __future__ import annotations
+
+import os
+import tempfile
+from datetime import date, datetime
+from pathlib import Path
+
+import yaml
+
+from .models import Config, ParsedDocument, TaskMetadata
+
+
+def sidecar_dir(todo_path: Path) -> Path:
+    todo_path = Path(todo_path)
+    return todo_path.parent / f".{todo_path.name}.dir"
+
+
+def tasks_yaml_path(todo_path: Path) -> Path:
+    return sidecar_dir(todo_path) / "tasks.yaml"
+
+
+def config_yaml_path(todo_path: Path) -> Path:
+    return sidecar_dir(todo_path) / "config.yaml"
+
+
+def ensure_sidecar(todo_path: Path) -> Path:
+    d = sidecar_dir(todo_path)
+    d.mkdir(parents=True, exist_ok=True)
+    tp = tasks_yaml_path(todo_path)
+    if not tp.exists():
+        _atomic_write(tp, "tasks: []\n")
+    cp = config_yaml_path(todo_path)
+    if not cp.exists():
+        _atomic_write(cp, "port: null\n")
+    return d
+
+
+def load_tasks_yaml(todo_path: Path) -> dict[str, TaskMetadata]:
+    p = tasks_yaml_path(todo_path)
+    if not p.exists():
+        return {}
+    raw = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+    rows = raw.get("tasks") or []
+    out: dict[str, TaskMetadata] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        h = row.get("hash")
+        if not isinstance(h, str):
+            continue
+        known = {"hash", "start", "end", "created", "completed"}
+        extra = {k: v for k, v in row.items() if k not in known}
+        out[h] = TaskMetadata(
+            hash=h,
+            start=_to_date(row.get("start")),
+            end=_to_date(row.get("end")),
+            created=_to_datetime(row.get("created")),
+            completed=_to_datetime(row.get("completed")),
+            extra=extra,
+        )
+    return out
+
+
+def save_tasks_yaml(todo_path: Path, data: dict[str, TaskMetadata]) -> None:
+    rows = []
+    for h in sorted(data.keys()):
+        m = data[h]
+        row = {
+            "hash": m.hash,
+            "start": m.start.isoformat() if m.start else None,
+            "end": m.end.isoformat() if m.end else None,
+            "created": m.created.isoformat(timespec="seconds") if m.created else None,
+            "completed": m.completed.isoformat(timespec="seconds") if m.completed else None,
+        }
+        row.update(m.extra)
+        rows.append(row)
+    body = yaml.safe_dump({"tasks": rows}, sort_keys=False, default_flow_style=False)
+    _atomic_write(tasks_yaml_path(todo_path), body)
+
+
+def load_config(todo_path: Path) -> Config:
+    p = config_yaml_path(todo_path)
+    if not p.exists():
+        return Config()
+    raw = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+    if not isinstance(raw, dict):
+        return Config()
+    port = raw.get("port")
+    if port is not None and not isinstance(port, int):
+        port = None
+    extra = {k: v for k, v in raw.items() if k != "port"}
+    return Config(port=port, extra=extra)
+
+
+def sync(doc: ParsedDocument, todo_path: Path) -> ParsedDocument:
+    """Merge yaml metadata into the parsed doc. Mutates tasks in `doc` and writes back yaml if changed."""
+    yaml_data = load_tasks_yaml(todo_path)
+    now = datetime.now().replace(microsecond=0)
+    changed = False
+
+    # Walk parsed tasks
+    for h, task in doc.tasks_by_hash.items():
+        meta = yaml_data.get(h)
+        if meta is None:
+            meta = TaskMetadata(hash=h, created=now)
+            yaml_data[h] = meta
+            changed = True
+        else:
+            if meta.created is None:
+                meta.created = now
+                changed = True
+
+        # Sync done state with completed
+        if task.done and meta.completed is None:
+            meta.completed = now
+            changed = True
+        elif not task.done and meta.completed is not None:
+            meta.completed = None
+            changed = True
+
+        task.start = meta.start
+        task.end = meta.end
+        task.created = meta.created
+        task.completed = meta.completed
+
+    # Drop yaml entries no longer in md
+    to_drop = [h for h in yaml_data if h not in doc.tasks_by_hash]
+    for h in to_drop:
+        del yaml_data[h]
+        changed = True
+
+    if changed:
+        save_tasks_yaml(todo_path, yaml_data)
+    return doc
+
+
+def set_dates(todo_path: Path, hash: str, start: date | None, end: date | None) -> TaskMetadata:
+    data = load_tasks_yaml(todo_path)
+    if hash not in data:
+        data[hash] = TaskMetadata(hash=hash, created=datetime.now().replace(microsecond=0))
+    data[hash].start = start
+    data[hash].end = end
+    save_tasks_yaml(todo_path, data)
+    return data[hash]
+
+
+# --- helpers ----------------------------------------------------------------
+
+
+def _atomic_write(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(prefix=path.name + ".", dir=str(path.parent))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(content)
+        os.replace(tmp, path)
+    except Exception:
+        try:
+            os.unlink(tmp)
+        except FileNotFoundError:
+            pass
+        raise
+
+
+def _to_date(v) -> date | None:
+    if v is None:
+        return None
+    if isinstance(v, date) and not isinstance(v, datetime):
+        return v
+    if isinstance(v, datetime):
+        return v.date()
+    if isinstance(v, str):
+        try:
+            return date.fromisoformat(v)
+        except ValueError:
+            return None
+    return None
+
+
+def _to_datetime(v) -> datetime | None:
+    if v is None:
+        return None
+    if isinstance(v, datetime):
+        return v.replace(microsecond=0)
+    if isinstance(v, date):
+        return datetime.combine(v, datetime.min.time())
+    if isinstance(v, str):
+        try:
+            return datetime.fromisoformat(v).replace(microsecond=0)
+        except ValueError:
+            return None
+    return None
