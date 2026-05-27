@@ -179,6 +179,20 @@ def down(path: Path | None) -> None:
         _console.print(f"tsk: stopped daemon (pid {pid})")
 
 
+@cli.command()
+@click.argument("path", required=False, type=click.Path(dir_okay=False, path_type=Path))
+def status(path: Path | None) -> None:
+    """Show the resolved TODO path and daemon state."""
+    todo = _resolve_path(path)
+    _console.print(f"tsk: using [cyan]{todo}[/]")
+    pid, url = daemon_mod.read_status(todo)
+    if pid is None:
+        _console.print("tsk: daemon is [yellow]down[/]")
+    else:
+        suffix = f" at [cyan]{url}[/]" if url else ""
+        _console.print(f"tsk: daemon is [green]up[/] (pid [bold]{pid}[/]){suffix}")
+
+
 @cli.group()
 def task() -> None:
     """Add or remove tasks."""
@@ -506,7 +520,7 @@ def _parse_date(s: str) -> date:
 
 def main() -> None:
     argv = sys.argv[1:]
-    known_top = {"init", "task", "help", "serve", "up", "down", "config"}
+    known_top = {"init", "task", "help", "serve", "up", "down", "config", "status"}
     if not argv:
         argv = ["serve"]
     elif not argv[0].startswith("-") and argv[0] not in known_top:

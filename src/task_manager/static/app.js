@@ -597,15 +597,6 @@ function openTaskModal(task) {
     tagEl.style.background = withAlpha(c, 0.18);
     header.appendChild(tagEl);
   }
-  const hashEl = document.createElement('span');
-  hashEl.className = 'task-hash';
-  hashEl.textContent = task.hash;
-  header.appendChild(hashEl);
-
-  const title = document.createElement('span');
-  title.style.fontWeight = '600';
-  title.textContent = firstLine(task.description);
-  header.appendChild(title);
 
   const closeBtn = document.createElement('button');
   closeBtn.className = 'modal-close';
@@ -619,6 +610,7 @@ function openTaskModal(task) {
   meta.className = 'modal-meta';
   meta.innerHTML =
     `<span><b>project</b> ${escapeHtml(task.project)}</span>` +
+    `<span><b>hash</b> ${escapeHtml(task.hash)}</span>` +
     `<span><b>status</b> ${task.done ? 'done' : 'open'}</span>` +
     (task.start ? `<span><b>start</b> ${task.start}</span>` : '') +
     (task.end ? `<span><b>end</b> ${task.end}</span>` : '') +
