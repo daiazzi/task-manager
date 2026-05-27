@@ -14,6 +14,7 @@ const state = {
   theme: 'dark',
   textSize: 'medium',
   leftPaneWidth: 480,
+  expandedNotes: new Set(),
 };
 
 // ---------- helpers ----------
@@ -296,6 +297,44 @@ function renderProjectChips() {
   }
 }
 
+function renderProjectNotes(notes, projectName) {
+  if (!notes || notes.length === 0) return null;
+  const expanded = state.expandedNotes.has(projectName);
+  const wrap = document.createElement('div');
+  wrap.className = 'project-notes' + (expanded ? ' expanded' : '');
+
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'project-notes-toggle';
+  toggle.setAttribute('aria-expanded', String(expanded));
+  const chip = document.createElement('span');
+  chip.className = 'project-notes-chip';
+  chip.textContent = `ℹ︎ ${notes.length}`;
+  chip.title = `${notes.length} note${notes.length === 1 ? '' : 's'}`;
+  const label = document.createElement('span');
+  label.className = 'project-notes-label';
+  label.textContent = 'Notes';
+  toggle.appendChild(chip);
+  toggle.appendChild(label);
+  toggle.addEventListener('click', () => {
+    if (state.expandedNotes.has(projectName)) state.expandedNotes.delete(projectName);
+    else state.expandedNotes.add(projectName);
+    render();
+  });
+  wrap.appendChild(toggle);
+
+  const body = document.createElement('div');
+  body.className = 'project-notes-body';
+  for (const note of notes) {
+    const item = document.createElement('div');
+    item.className = 'project-note markdown-body';
+    item.innerHTML = renderMarkdown(note.content || '');
+    body.appendChild(item);
+  }
+  wrap.appendChild(body);
+  return wrap;
+}
+
 function renderList() {
   const host = $('#task-list');
   host.innerHTML = '';
@@ -304,7 +343,8 @@ function renderList() {
   for (const p of state.projects) {
     if (!state.activeProjects.has(p.name)) continue;
     const tasks = p.tasks.filter((t) => state.showCompleted || !t.done);
-    if (tasks.length === 0) continue;
+    const notes = p.notes || [];
+    if (tasks.length === 0 && notes.length === 0) continue;
     anyVisible = true;
     const section = document.createElement('div');
     section.className = 'project-section';
@@ -312,6 +352,9 @@ function renderList() {
     header.className = 'project-header';
     header.textContent = p.name;
     section.appendChild(header);
+
+    const notesEl = renderProjectNotes(notes, p.name);
+    if (notesEl) section.appendChild(notesEl);
 
     for (const t of tasks) {
       section.appendChild(renderTaskRow(t, false));
