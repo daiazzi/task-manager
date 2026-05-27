@@ -285,79 +285,125 @@ def task_remove(hash: str, path: Path | None) -> None:
     _console.print(f"tsk: removed ({hash}) and {len(subtasks)} subtask(s).")
 
 
-@cli.group(invoke_without_command=True)
+@cli.command("config")
+@click.option("--dark-mode", "dark_mode", is_flag=True, help="Set the UI theme to dark.")
+@click.option("--light-mode", "light_mode", is_flag=True, help="Set the UI theme to light.")
+@click.option(
+    "--tag-col",
+    "tag_cols",
+    multiple=True,
+    help='Set a tag colour. Format: "TAG:color" (palette name or hex). Repeatable.',
+)
+@click.option(
+    "--show-dates/--no-show-dates",
+    "show_dates",
+    default=None,
+    help="Show or hide the start/end columns in the UI by default.",
+)
 @click.option(
     "--default-duration",
     "default_duration",
     type=int,
     default=None,
-    help="Set the default duration (in days) for new tasks. Uses cwd auto-resolution.",
+    help="Set the default duration (in days) for new tasks.",
 )
+@click.option(
+    "--text-size",
+    "text_size",
+    type=click.Choice(["small", "medium", "big"]),
+    default=None,
+    help="UI text size.",
+)
+@click.option("--list-colors", "list_colors", is_flag=True, help="Print the colour palette and exit.")
 @click.pass_context
-def config(ctx: click.Context, default_duration: int | None) -> None:
-    """Inspect or modify the per-project config.yaml."""
-    if ctx.invoked_subcommand is not None:
-        return
-    if default_duration is not None:
-        if default_duration <= 0:
-            raise click.ClickException("--default-duration must be a positive integer.")
-        todo = _resolve_path(None)
-        store.ensure_sidecar(todo)
-        cfg = store.load_config(todo)
-        cfg.default_duration = default_duration
-        store.save_config(todo, cfg)
-        _console.print(f"tsk: default_duration set to [bold]{default_duration}[/bold] day(s)")
-        return
-    click.echo(ctx.get_help())
-
-
-@config.command("mode")
-@click.argument("mode", type=click.Choice(["dark", "light"]))
-@click.argument("path", required=False, type=click.Path(dir_okay=False, path_type=Path))
-def config_mode(mode: str, path: Path | None) -> None:
-    """Set the UI theme (dark or light)."""
-    todo = _resolve_path(path)
-    store.ensure_sidecar(todo)
-    cfg = store.load_config(todo)
-    cfg.theme = mode
-    store.save_config(todo, cfg)
-    _console.print(f"tsk: theme set to [bold]{mode}[/bold]")
-
-
-@config.command("tag")
-@click.option("--color", "-c", default=None, help="Colour name (from palette) or hex like #abcdef.")
-@click.argument("tag_name", required=False)
-@click.argument("path", required=False, type=click.Path(dir_okay=False, path_type=Path))
-@click.pass_context
-def config_tag(
-    ctx: click.Context, color: str | None, tag_name: str | None, path: Path | None
+def config(
+    ctx: click.Context,
+    dark_mode: bool,
+    light_mode: bool,
+    tag_cols: tuple[str, ...],
+    show_dates: bool | None,
+    default_duration: int | None,
+    text_size: str | None,
+    list_colors: bool,
 ) -> None:
-    """Configure per-tag colours.
+    """Inspect or modify the per-project config.yaml.
 
     \b
-    Set a tag's colour:    tsk config tag --color red api
-    Show available colors: tsk config tag colors
+    Examples:
+      tsk config --dark-mode
+      tsk config --tag-col DEV:green --tag-col DATA:yellow
+      tsk config --show-dates --default-duration 5
+      tsk config --text-size big
+      tsk config --list-colors
     """
-    if tag_name == "colors" and color is None and path is None:
+    if list_colors:
         _show_palette()
         return
-    if not tag_name and not color:
+
+    if dark_mode and light_mode:
+        raise click.ClickException("--dark-mode and --light-mode are mutually exclusive.")
+
+    if default_duration is not None and default_duration <= 0:
+        raise click.ClickException("--default-duration must be a positive integer.")
+
+    parsed_colors: dict[str, str] = {}
+    for entry in tag_cols:
+        for piece in entry.split(","):
+            piece = piece.strip()
+            if not piece:
+                continue
+            if ":" not in piece:
+                raise click.ClickException(
+                    f"--tag-col entry '{piece}' is missing ':'; expected TAG:color."
+                )
+            tag_name, _, color_value = piece.partition(":")
+            tag_name = tag_name.strip()
+            color_value = color_value.strip()
+            if not tag_name:
+                raise click.ClickException("--tag-col entry is missing the tag name.")
+            parsed_colors[tag_name] = _resolve_color(color_value)
+
+    any_change = (
+        dark_mode
+        or light_mode
+        or parsed_colors
+        or show_dates is not None
+        or default_duration is not None
+        or text_size is not None
+    )
+    if not any_change:
         click.echo(ctx.get_help())
         return
-    if not tag_name:
-        raise click.ClickException("Tag name is required.")
-    if not color:
-        raise click.ClickException("Pass --color/-c to set the tag colour.")
-    hex_value = _resolve_color(color)
-    todo = _resolve_path(path)
+
+    todo = _resolve_path(None)
     store.ensure_sidecar(todo)
     cfg = store.load_config(todo)
-    cfg.colors[tag_name] = hex_value
+
+    summary: list[str] = []
+    if dark_mode:
+        cfg.theme = "dark"
+        summary.append("theme = [bold]dark[/]")
+    if light_mode:
+        cfg.theme = "light"
+        summary.append("theme = [bold]light[/]")
+    if show_dates is not None:
+        cfg.show_dates = show_dates
+        summary.append(f"show_dates = [bold]{str(show_dates).lower()}[/]")
+    if default_duration is not None:
+        cfg.default_duration = default_duration
+        summary.append(f"default_duration = [bold]{default_duration}[/] day(s)")
+    if text_size is not None:
+        cfg.text_size = text_size
+        summary.append(f"text_size = [bold]{text_size}[/]")
+    for tag_name, hex_value in parsed_colors.items():
+        cfg.colors[tag_name] = hex_value
+        summary.append(
+            f"colors.{tag_name} = [on {hex_value}]      [/] [bold]{hex_value}[/]"
+        )
+
     store.save_config(todo, cfg)
-    _console.print(
-        f"tsk: tag [bold]{tag_name}[/bold] set to "
-        f"[on {hex_value}]      [/] {hex_value}"
-    )
+    for line in summary:
+        _console.print(f"tsk: {line}")
 
 
 def _show_palette() -> None:

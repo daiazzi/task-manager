@@ -12,6 +12,7 @@ const state = {
   showDates: true,
   calendarMonth: null,
   theme: 'dark',
+  textSize: 'medium',
   leftPaneWidth: 480,
 };
 
@@ -53,6 +54,10 @@ function savePrefs() {
 
 function applyDatesAttr() {
   document.documentElement.setAttribute('data-dates', state.showDates ? 'on' : 'off');
+}
+
+function applyTextSize() {
+  document.documentElement.setAttribute('data-text', state.textSize);
 }
 
 function applyLeftPaneWidth() {
@@ -980,9 +985,12 @@ async function init() {
     const data = await fetchTasks();
     state.todoPath = data.todo_path || '';
     if (data.theme === 'light' || data.theme === 'dark') state.theme = data.theme;
+    if (typeof data.show_dates === 'boolean') state.showDates = data.show_dates;
+    if (['small', 'medium', 'big'].includes(data.text_size)) state.textSize = data.text_size;
     loadPrefs();
     applyTheme();
     applyDatesAttr();
+    applyTextSize();
     applyLeftPaneWidth();
     $('#show-dates').checked = state.showDates;
     initSplitter();

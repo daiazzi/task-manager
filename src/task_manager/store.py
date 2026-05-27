@@ -18,7 +18,9 @@ _DEFAULT_CONFIG_BODY = """\
 # task-manager config — edit and run `tsk` to apply.
 port: null
 
-theme: dark    # "dark" or "light"
+theme: dark             # "dark" or "light"
+text_size: medium       # "small", "medium", or "big"
+show_dates: true        # default visibility of the start/end columns
 
 # New tasks get start=today, end=today+(default_duration-1) days.
 default_duration: 1
@@ -129,10 +131,22 @@ def load_config(todo_path: Path) -> Config:
     duration = raw.get("default_duration", 1)
     if not isinstance(duration, int) or duration <= 0:
         duration = 1
-    known = {"port", "colors", "theme", "default_duration"}
+    show_dates = raw.get("show_dates", True)
+    if not isinstance(show_dates, bool):
+        show_dates = True
+    text_size = raw.get("text_size", "medium")
+    if text_size not in ("small", "medium", "big"):
+        text_size = "medium"
+    known = {"port", "colors", "theme", "default_duration", "show_dates", "text_size"}
     extra = {k: v for k, v in raw.items() if k not in known}
     return Config(
-        port=port, colors=colors, theme=theme, default_duration=duration, extra=extra
+        port=port,
+        colors=colors,
+        theme=theme,
+        default_duration=duration,
+        show_dates=show_dates,
+        text_size=text_size,
+        extra=extra,
     )
 
 
@@ -141,6 +155,8 @@ def save_config(todo_path: Path, cfg: Config) -> None:
     body: dict = {
         "port": cfg.port,
         "theme": cfg.theme,
+        "text_size": cfg.text_size,
+        "show_dates": cfg.show_dates,
         "default_duration": cfg.default_duration,
         "colors": dict(cfg.colors),
     }

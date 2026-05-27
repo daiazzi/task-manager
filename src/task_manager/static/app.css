@@ -14,7 +14,12 @@
   --row-h: 30px;
   --date-col-w: 110px;
   --left-pane-w: 480px;
+  --text-base: 13px;
 }
+
+:root, [data-text="medium"] { --text-base: 13px; }
+[data-text="small"]  { --text-base: 11.5px; }
+[data-text="big"]    { --text-base: 15px; }
 
 [data-theme="light"] {
   --bg: #fafbfc;
@@ -38,7 +43,7 @@ html, body {
   padding: 0;
   height: 100vh;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  font-size: 13px;
+  font-size: var(--text-base);
   background: var(--bg);
   color: var(--text);
 }

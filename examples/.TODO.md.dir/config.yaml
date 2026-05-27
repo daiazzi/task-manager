@@ -1,5 +1,7 @@
 port: null
 theme: dark
+text_size: medium
+show_dates: true
 default_duration: 3
 colors:
   default: '#7aa2f7'

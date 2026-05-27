@@ -60,4 +60,6 @@ class Config:
     colors: dict[str, str] = field(default_factory=dict)
     theme: str = "dark"
     default_duration: int = 1
+    show_dates: bool = True
+    text_size: str = "medium"
     extra: dict = field(default_factory=dict)

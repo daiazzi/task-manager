@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import pytest
@@ -18,75 +17,183 @@ def init_todo(tmp_path: Path) -> Path:
     return p
 
 
-def test_config_mode_sets_theme(init_todo: Path):
+# --- theme -------------------------------------------------------------------
+
+
+def test_config_dark_mode(init_todo: Path, monkeypatch):
+    monkeypatch.chdir(init_todo.parent)
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "mode", "light", str(init_todo)])
+    result = runner.invoke(cli, ["config", "--dark-mode"])
+    assert result.exit_code == 0, result.output
+    assert load_config(init_todo).theme == "dark"
+
+
+def test_config_light_mode(init_todo: Path, monkeypatch):
+    monkeypatch.chdir(init_todo.parent)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["config", "--light-mode"])
     assert result.exit_code == 0, result.output
     assert load_config(init_todo).theme == "light"
 
 
-def test_config_mode_rejects_invalid(init_todo: Path):
+def test_config_mode_mutually_exclusive(init_todo: Path, monkeypatch):
+    monkeypatch.chdir(init_todo.parent)
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "mode", "rainbow", str(init_todo)])
+    result = runner.invoke(cli, ["config", "--dark-mode", "--light-mode"])
     assert result.exit_code != 0
+    assert "mutually exclusive" in result.output
 
 
-def test_config_tag_set_by_palette_name(init_todo: Path):
+# --- tag colours -------------------------------------------------------------
+
+
+def test_config_tag_col_palette_name(init_todo: Path, monkeypatch):
+    monkeypatch.chdir(init_todo.parent)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["config", "--tag-col", "api:green"])
+    assert result.exit_code == 0, result.output
+    assert load_config(init_todo).colors["api"] == "#9ece6a"
+
+
+def test_config_tag_col_hex(init_todo: Path, monkeypatch):
+    monkeypatch.chdir(init_todo.parent)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["config", "--tag-col", "db:#abcdef"])
+    assert result.exit_code == 0, result.output
+    assert load_config(init_todo).colors["db"] == "#abcdef"
+
+
+def test_config_tag_col_repeatable(init_todo: Path, monkeypatch):
+    monkeypatch.chdir(init_todo.parent)
     runner = CliRunner()
     result = runner.invoke(
-        cli, ["config", "tag", "--color", "green", "api", str(init_todo)]
+        cli,
+        ["config", "--tag-col", "api:green", "--tag-col", "db:red"],
     )
     assert result.exit_code == 0, result.output
     cfg = load_config(init_todo)
     assert cfg.colors["api"] == "#9ece6a"
+    assert cfg.colors["db"] == "#f7768e"
 
 
-def test_config_tag_set_by_hex(init_todo: Path):
+def test_config_tag_col_comma_separated(init_todo: Path, monkeypatch):
+    monkeypatch.chdir(init_todo.parent)
     runner = CliRunner()
-    result = runner.invoke(
-        cli, ["config", "tag", "-c", "#abcdef", "db", str(init_todo)]
-    )
+    result = runner.invoke(cli, ["config", "--tag-col", "api:green,db:red"])
     assert result.exit_code == 0, result.output
     cfg = load_config(init_todo)
-    assert cfg.colors["db"] == "#abcdef"
+    assert cfg.colors["api"] == "#9ece6a"
+    assert cfg.colors["db"] == "#f7768e"
 
 
-def test_config_tag_rejects_bad_color(init_todo: Path):
+def test_config_tag_col_invalid_color(init_todo: Path, monkeypatch):
+    monkeypatch.chdir(init_todo.parent)
     runner = CliRunner()
-    result = runner.invoke(
-        cli, ["config", "tag", "-c", "not-a-color", "api", str(init_todo)]
-    )
+    result = runner.invoke(cli, ["config", "--tag-col", "api:not-a-color"])
     assert result.exit_code != 0
     assert "Invalid colour" in result.output
 
 
-def test_config_tag_requires_tag_when_color_given(init_todo: Path):
+def test_config_tag_col_missing_colon(init_todo: Path, monkeypatch):
+    monkeypatch.chdir(init_todo.parent)
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "tag", "-c", "red", str(init_todo)])
-    # Without a tag name, click treats str(init_todo) as the tag_name. That's
-    # not what we want, but it should still succeed in writing the colour
-    # under the literal path string — which is weird but acceptable. Instead
-    # of asserting on this edge case, just check that calling it with no
-    # positional args at all shows help.
-    # Real test: nothing positional → help.
-    result = runner.invoke(cli, ["config", "tag"])
-    assert result.exit_code == 0
-    assert "Configure per-tag colours" in result.output or "Usage" in result.output
+    result = runner.invoke(cli, ["config", "--tag-col", "api-green"])
+    assert result.exit_code != 0
+    assert "missing ':'" in result.output
 
 
-def test_config_tag_colors_lists_palette(init_todo: Path):
+def test_config_list_colors():
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "tag", "colors"])
+    result = runner.invoke(cli, ["config", "--list-colors"])
     assert result.exit_code == 0, result.output
-    out = result.output
     for name in ("red", "green", "blue", "purple"):
-        assert name in out
+        assert name in result.output
+
+
+# --- show_dates --------------------------------------------------------------
+
+
+def test_config_show_dates_off(init_todo: Path, monkeypatch):
+    monkeypatch.chdir(init_todo.parent)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["config", "--no-show-dates"])
+    assert result.exit_code == 0, result.output
+    assert load_config(init_todo).show_dates is False
+
+
+def test_config_show_dates_on(init_todo: Path, monkeypatch):
+    monkeypatch.chdir(init_todo.parent)
+    # Flip to false first, then back to true
+    cfg = load_config(init_todo)
+    cfg.show_dates = False
+    from task_manager.store import save_config
+    save_config(init_todo, cfg)
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["config", "--show-dates"])
+    assert result.exit_code == 0, result.output
+    assert load_config(init_todo).show_dates is True
+
+
+# --- text_size ---------------------------------------------------------------
+
+
+def test_config_text_size(init_todo: Path, monkeypatch):
+    monkeypatch.chdir(init_todo.parent)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["config", "--text-size", "big"])
+    assert result.exit_code == 0, result.output
+    assert load_config(init_todo).text_size == "big"
+
+
+def test_config_text_size_invalid(init_todo: Path, monkeypatch):
+    monkeypatch.chdir(init_todo.parent)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["config", "--text-size", "huge"])
+    assert result.exit_code != 0
+
+
+# --- combined ----------------------------------------------------------------
+
+
+def test_config_multiple_flags_in_one_call(init_todo: Path, monkeypatch):
+    monkeypatch.chdir(init_todo.parent)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "config",
+            "--dark-mode",
+            "--tag-col", "api:green",
+            "--no-show-dates",
+            "--default-duration", "5",
+            "--text-size", "small",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    cfg = load_config(init_todo)
+    assert cfg.theme == "dark"
+    assert cfg.colors["api"] == "#9ece6a"
+    assert cfg.show_dates is False
+    assert cfg.default_duration == 5
+    assert cfg.text_size == "small"
+
+
+def test_config_help_when_no_flags(init_todo: Path, monkeypatch):
+    monkeypatch.chdir(init_todo.parent)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["config"])
+    assert result.exit_code == 0
+    assert "Usage" in result.output or "Inspect" in result.output
+
+
+# --- auto-resolution ---------------------------------------------------------
 
 
 def test_auto_resolve_uses_initialized_file_in_cwd(init_todo: Path, monkeypatch):
     monkeypatch.chdir(init_todo.parent)
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "mode", "light"])
+    result = runner.invoke(cli, ["config", "--light-mode"])
     assert result.exit_code == 0, result.output
     assert load_config(init_todo).theme == "light"
 
@@ -94,7 +201,7 @@ def test_auto_resolve_uses_initialized_file_in_cwd(init_todo: Path, monkeypatch)
 def test_auto_resolve_errors_when_no_file(tmp_path: Path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "mode", "dark"])
+    result = runner.invoke(cli, ["config", "--dark-mode"])
     assert result.exit_code != 0
     assert "No TODO file found" in result.output
 
@@ -108,7 +215,7 @@ def test_auto_resolve_errors_when_ambiguous(tmp_path: Path, monkeypatch):
     ensure_sidecar(b)
     monkeypatch.chdir(tmp_path)
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "mode", "dark"])
+    result = runner.invoke(cli, ["config", "--dark-mode"])
     assert result.exit_code != 0
     assert "Multiple initialized" in result.output
 
@@ -116,12 +223,10 @@ def test_auto_resolve_errors_when_ambiguous(tmp_path: Path, monkeypatch):
 def test_auto_resolve_falls_back_to_TODO_md(tmp_path: Path, monkeypatch):
     p = tmp_path / "TODO.md"
     p.write_text("# t\n\n## p\n- [ ] (a4f9c): x\n")
-    # No sidecar — fallback path should still find TODO.md
     monkeypatch.chdir(tmp_path)
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "mode", "dark"])
+    result = runner.invoke(cli, ["config", "--dark-mode"])
     assert result.exit_code == 0, result.output
-    # After running, the sidecar should now exist
     assert sidecar_dir(p).is_dir()
 
 
@@ -133,11 +238,7 @@ def test_init_defaults_to_TODO_md_in_cwd(tmp_path: Path, monkeypatch):
     assert (tmp_path / "TODO.md").exists()
 
 
-def test_serve_path_argument_still_works(init_todo: Path):
-    """Sanity: explicit path still works for back-compat with explicit invocations."""
-    # We don't actually want to spin up the server in tests, just check the
-    # path validation. Invoking serve with an obviously bad path should fail
-    # with 'File not found', not with click's exists=True message.
+def test_serve_path_argument_still_works():
     runner = CliRunner()
     result = runner.invoke(cli, ["serve", "/no/such/file/exists.md"])
     assert result.exit_code != 0
