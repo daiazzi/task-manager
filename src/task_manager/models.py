@@ -23,9 +23,15 @@ class Task:
 
 
 @dataclass(slots=True)
+class Note:
+    content: str
+
+
+@dataclass(slots=True)
 class Project:
     name: str
     tasks: list[Task] = field(default_factory=list)
+    notes: list[Note] = field(default_factory=list)
 
 
 @dataclass(slots=True)
