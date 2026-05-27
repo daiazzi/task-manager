@@ -38,6 +38,10 @@ project, tag, description, done state. The yaml owns dates and timestamps.
 
 ## backend                   <-- starts a project
 
+### Notes                    <-- optional ideas/decisions for this project
+- Chose PostgreSQL for persistence.
+- Open question: caching layer?
+
 - [ ] api(a4f9c): Build the parser
   Continued description on indented lines.
   - A bullet inside the description (no checkbox).
@@ -50,6 +54,9 @@ project, tag, description, done state. The yaml owns dates and timestamps.
 
 - H1 (`#`) is the document title — shown in the UI header.
 - H2 (`##`) headings are projects. Tasks belong to the most recent one.
+- `### Notes` under a project holds project notes: plain `-` or `*` bullets
+  (not checkboxes). Each bullet starts a note; everything until the next bullet
+  at the same indent is markdown shown in a collapsible panel in the UI.
 - A task is `- [ ]` (or `- [x]`, `*`, mixed) followed by an optional `tag`,
   `(hash)`, `:`, then the description.
 - The hash is mandatory in the canonical form; unstamped tasks are accepted

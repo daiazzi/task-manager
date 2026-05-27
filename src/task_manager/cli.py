@@ -459,6 +459,8 @@ _FORMAT_HELP_TEXT = """\
 [bold]File structure[/bold]
   # Document title             (ignored)
   ## Project name              (starts a project)
+  ### Notes                    (optional project notes)
+  - A note bullet; content until the next - or * bullet is markdown.
   - [ ] tag(hash): task         (a task)
     continued description on indented lines
     - sub-bullet of description (no checkbox)
@@ -468,6 +470,9 @@ _FORMAT_HELP_TEXT = """\
 [bold]Rules[/bold]
   • H1 is ignored.
   • H2 starts a project. Tasks belong to the most recent H2.
+  • [cyan]### Notes[/cyan] under a project holds notes: plain [cyan]-[/cyan] or [cyan]*[/cyan]
+    bullets (not checkboxes). Each bullet starts a note; lines until the next bullet
+    at the same indent are rendered as markdown in the UI.
   • A [italic]task[/italic] is any indented bullet starting with [cyan]- [ ][/cyan] or [cyan]- [x][/cyan].
   • Indentation is lenient (tabs or spaces). Tabs count as 4 spaces.
   • [italic]Subtasks[/italic] are checkbox bullets indented deeper than their parent.
