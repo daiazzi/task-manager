@@ -139,6 +139,26 @@ def serve(path: Path | None, no_browser: bool, host: str, port: int | None) -> N
     help="Show or hide the start/end columns in the UI by default.",
 )
 @click.option(
+    "--show-panel/--no-show-panel",
+    "show_panel",
+    default=None,
+    help="Show or hide the right-side panel (gantt/calendar) by default.",
+)
+@click.option(
+    "--panel",
+    "show_panel",
+    flag_value=True,
+    default=None,
+    help="Alias for --show-panel.",
+)
+@click.option(
+    "--no-panel",
+    "show_panel",
+    flag_value=False,
+    default=None,
+    help="Alias for --no-show-panel.",
+)
+@click.option(
     "--default-duration",
     "default_duration",
     type=int,
@@ -165,6 +185,7 @@ def init(
     light_mode: bool,
     tag_cols: tuple[str, ...],
     show_dates: bool | None,
+    show_panel: bool | None,
     default_duration: int | None,
     text_size: str | None,
     auto_refresh: bool | None,
@@ -223,6 +244,7 @@ def init(
         or light_mode
         or bool(parsed_colors)
         or show_dates is not None
+        or show_panel is not None
         or default_duration is not None
         or text_size is not None
         or auto_refresh is not None
@@ -235,6 +257,8 @@ def init(
             cfg.theme = "light"
         if show_dates is not None:
             cfg.show_dates = show_dates
+        if show_panel is not None:
+            cfg.show_panel = show_panel
         if default_duration is not None:
             cfg.default_duration = default_duration
         if text_size is not None:
@@ -559,6 +583,26 @@ def task_remove(hash: str, path: Path | None) -> None:
     help="Show or hide the start/end columns in the UI by default.",
 )
 @click.option(
+    "--show-panel/--no-show-panel",
+    "show_panel",
+    default=None,
+    help="Show or hide the right-side panel (gantt/calendar) by default.",
+)
+@click.option(
+    "--panel",
+    "show_panel",
+    flag_value=True,
+    default=None,
+    help="Alias for --show-panel.",
+)
+@click.option(
+    "--no-panel",
+    "show_panel",
+    flag_value=False,
+    default=None,
+    help="Alias for --no-show-panel.",
+)
+@click.option(
     "--default-duration",
     "default_duration",
     type=int,
@@ -586,6 +630,7 @@ def config(
     light_mode: bool,
     tag_cols: tuple[str, ...],
     show_dates: bool | None,
+    show_panel: bool | None,
     default_duration: int | None,
     text_size: str | None,
     auto_refresh: bool | None,
@@ -633,6 +678,7 @@ def config(
         or light_mode
         or parsed_colors
         or show_dates is not None
+        or show_panel is not None
         or default_duration is not None
         or text_size is not None
         or auto_refresh is not None
@@ -655,6 +701,9 @@ def config(
     if show_dates is not None:
         cfg.show_dates = show_dates
         summary.append(f"show_dates = [bold]{str(show_dates).lower()}[/]")
+    if show_panel is not None:
+        cfg.show_panel = show_panel
+        summary.append(f"show_panel = [bold]{str(show_panel).lower()}[/]")
     if default_duration is not None:
         cfg.default_duration = default_duration
         summary.append(f"default_duration = [bold]{default_duration}[/] day(s)")
