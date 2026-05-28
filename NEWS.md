@@ -12,6 +12,8 @@
 - feat: Make notes clickable with popup window like tasks
 - feat: Default tags DOCS, ENV, REFACTOR, FEAT, FIX, PERF, TESTS
 - feat(CLI): add `tsk restart` command (down + up)
+- feat(UI): allow `Esc` to close task/note popup
+- fix: ensure blank line after markdown headings on write
 
 ## 0.1.0 (2026-05-28)
 

@@ -63,7 +63,7 @@ tasks:
   start: '2026-05-28'
   end: '2026-05-28'
   created: '2026-05-28T11:52:09'
-  completed: null
+  completed: '2026-05-28T12:01:37'
 - hash: a1b6a
   start: '2026-05-28'
   end: '2026-05-28'
@@ -78,4 +78,4 @@ tasks:
   start: '2026-05-28'
   end: '2026-05-28'
   created: '2026-05-28T10:25:29'
-  completed: null
+  completed: '2026-05-28T12:05:07'
