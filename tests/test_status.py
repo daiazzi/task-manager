@@ -54,3 +54,19 @@ def test_status_no_file(tmp_path: Path, monkeypatch):
     result = runner.invoke(cli, ["status"])
     assert result.exit_code != 0
     assert "No TODO file" in result.output
+
+
+def test_restart_replaces_running_daemon(tmp_path: Path):
+    p = tmp_path / "TODO.md"
+    p.write_text("# t\n\n## p\n- [ ] (a4f9c): x\n")
+    ensure_sidecar(p)
+    pid, _ = daemon_mod.start(p)
+    try:
+        runner = CliRunner()
+        result = runner.invoke(cli, ["restart", str(p)])
+        assert result.exit_code == 0, result.output
+        new_pid, _ = daemon_mod.read_status(p)
+        assert new_pid is not None
+        assert new_pid != pid
+    finally:
+        daemon_mod.stop(p)

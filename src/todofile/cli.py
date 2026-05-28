@@ -193,6 +193,27 @@ def down(path: Path | None) -> None:
     else:
         _console.print(f"tsk: stopped daemon (pid {pid})")
 
+
+@cli.command()
+@click.argument("path", required=False, type=click.Path(dir_okay=False, path_type=Path))
+@click.option("--host", default="127.0.0.1", show_default=True)
+@click.option("--port", type=int, default=None, help="Override the port from config.yaml.")
+def restart(path: Path | None, host: str, port: int | None) -> None:
+    """Restart the daemon associated with the given TODO file."""
+    todo = _resolve_path(path)
+    _load_doc(todo)
+    stopped = daemon_mod.stop(todo)
+    if stopped is None:
+        _console.print("tsk: daemon was already down")
+    else:
+        _console.print(f"tsk: stopped daemon (pid {stopped})")
+    try:
+        pid, url = daemon_mod.start(todo, host=host, port=port)
+    except RuntimeError as e:
+        raise click.ClickException(str(e))
+    _console.print(f"tsk: started daemon (pid {pid})")
+    _console.print(f"tsk: open {url}")
+
 @cli.command()
 @click.argument("path", required=False, type=click.Path(dir_okay=False, path_type=Path))
 def status(path: Path | None) -> None:
@@ -669,6 +690,7 @@ def main() -> None:
         "serve",
         "up",
         "down",
+        "restart",
         "config",
         "status",
     }

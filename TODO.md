@@ -28,7 +28,7 @@
   DOCS: "#663300"
   ENV: "#999900"
   MISC: "#339999"
-- [ ] FEAT(a1b6a): Add `tsk restart [path]` command (performs down and up).
+- [x] FEAT(a1b6a): Add `tsk restart [path]` command (performs down and up).
 - [ ] FEAT(944a9): use 'Esc' to close task/note popup
 - [ ] FEAT(270df): Align horizontally tasks in task panel with gantt visualisation
 - [ ] FIX(d1f2f): When writing the TODO file, after any h (h1, h2, h3) there should be an empty line

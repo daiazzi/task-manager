@@ -10,6 +10,8 @@
 - feat: add hash to notes so that they can be removed with the `tsk remove` command.
 - feat: Make the pop up window's content (task) editable.
 - feat: Make notes clickable with popup window like tasks
+- feat: Default tags DOCS, ENV, REFACTOR, FEAT, FIX, PERF, TESTS
+- feat(CLI): add `tsk restart` command (down + up)
 
 ## 0.1.0 (2026-05-28)
 
