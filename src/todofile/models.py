@@ -68,6 +68,7 @@ class Config:
     theme: str = "dark"
     default_duration: int = 1
     show_dates: bool = True
+    show_panel: bool = True
     text_size: str = "medium"
     auto_refresh: bool = True
     extra: dict = field(default_factory=dict)

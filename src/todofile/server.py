@@ -49,6 +49,7 @@ def _serialise(doc: ParsedDocument, todo_path: Path) -> dict:
         "theme": cfg.theme,
         "text_size": cfg.text_size,
         "show_dates": cfg.show_dates,
+        "show_panel": cfg.show_panel,
         "auto_refresh": cfg.auto_refresh,
         "projects": [
             {

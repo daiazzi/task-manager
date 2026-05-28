@@ -21,6 +21,7 @@ port: null
 theme: dark             # "dark" or "light"
 text_size: medium       # "small", "medium", or "big"
 show_dates: true        # default visibility of the start/end columns
+show_panel: true        # show the right-side panel (gantt/calendar)
 auto_refresh: true      # refresh UI automatically on TODO.md edits
 
 # New tasks get start=today, end=today+(default_duration-1) days.
@@ -149,6 +150,9 @@ def load_config(todo_path: Path) -> Config:
     show_dates = raw.get("show_dates", True)
     if not isinstance(show_dates, bool):
         show_dates = True
+    show_panel = raw.get("show_panel", True)
+    if not isinstance(show_panel, bool):
+        show_panel = True
     text_size = raw.get("text_size", "medium")
     if text_size not in ("small", "medium", "big"):
         text_size = "medium"
@@ -161,6 +165,7 @@ def load_config(todo_path: Path) -> Config:
         "theme",
         "default_duration",
         "show_dates",
+        "show_panel",
         "text_size",
         "auto_refresh",
     }
@@ -171,6 +176,7 @@ def load_config(todo_path: Path) -> Config:
         theme=theme,
         default_duration=duration,
         show_dates=show_dates,
+        show_panel=show_panel,
         text_size=text_size,
         auto_refresh=auto_refresh,
         extra=extra,
@@ -184,6 +190,7 @@ def save_config(todo_path: Path, cfg: Config) -> None:
         "theme": cfg.theme,
         "text_size": cfg.text_size,
         "show_dates": cfg.show_dates,
+        "show_panel": cfg.show_panel,
         "auto_refresh": cfg.auto_refresh,
         "default_duration": cfg.default_duration,
         "colors": dict(cfg.colors),

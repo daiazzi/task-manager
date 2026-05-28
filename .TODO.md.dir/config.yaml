@@ -2,6 +2,7 @@ port: 53051
 theme: light
 text_size: big
 show_dates: false
+show_panel: false
 auto_refresh: true
 default_duration: 1
 colors:
