@@ -145,20 +145,6 @@ def serve(path: Path | None, no_browser: bool, host: str, port: int | None) -> N
     help="Show or hide the right-side panel (gantt/calendar) by default.",
 )
 @click.option(
-    "--panel",
-    "show_panel",
-    flag_value=True,
-    default=None,
-    help="Alias for --show-panel.",
-)
-@click.option(
-    "--no-panel",
-    "show_panel",
-    flag_value=False,
-    default=None,
-    help="Alias for --no-show-panel.",
-)
-@click.option(
     "--default-duration",
     "default_duration",
     type=int,
@@ -587,20 +573,6 @@ def task_remove(hash: str, path: Path | None) -> None:
     "show_panel",
     default=None,
     help="Show or hide the right-side panel (gantt/calendar) by default.",
-)
-@click.option(
-    "--panel",
-    "show_panel",
-    flag_value=True,
-    default=None,
-    help="Alias for --show-panel.",
-)
-@click.option(
-    "--no-panel",
-    "show_panel",
-    flag_value=False,
-    default=None,
-    help="Alias for --no-show-panel.",
 )
 @click.option(
     "--default-duration",

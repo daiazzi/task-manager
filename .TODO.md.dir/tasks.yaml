@@ -2,90 +2,80 @@ tasks:
 - hash: 09067
   start: '2026-05-28'
   end: '2026-05-28'
-  created: '2026-05-28T10:16:46'
-  completed: '2026-05-28T11:54:18'
+  created: '2026-05-28T22:03:26'
+  completed: '2026-05-28T22:03:26'
 - hash: 095f3
   start: '2026-05-28'
   end: '2026-05-28'
-  created: '2026-05-28T10:28:20'
-  completed: '2026-05-28T12:06:54'
+  created: '2026-05-28T22:03:26'
+  completed: '2026-05-28T22:03:26'
 - hash: 18c87
   start: '2026-05-28'
   end: '2026-05-28'
-  created: '2026-05-28T10:17:27'
-  completed: '2026-05-28T10:58:45'
+  created: '2026-05-28T22:03:26'
+  completed: '2026-05-28T22:03:26'
 - hash: 1a194
   start: '2026-05-28'
   end: '2026-05-28'
-  created: '2026-05-28T10:14:27'
-  completed: '2026-05-28T11:39:23'
+  created: '2026-05-28T22:03:26'
+  completed: '2026-05-28T22:03:26'
 - hash: 1cddf
   start: '2026-05-28'
   end: '2026-05-28'
-  created: '2026-05-28T10:59:12'
-  completed: '2026-05-28T11:07:20'
+  created: '2026-05-28T22:03:26'
+  completed: '2026-05-28T22:03:26'
 - hash: 270df
   start: '2026-05-28'
   end: '2026-05-28'
-  created: '2026-05-28T10:21:15'
-  completed: '2026-05-28T14:47:27'
+  created: '2026-05-28T22:03:26'
+  completed: null
 - hash: 271a1
   start: '2026-05-28'
   end: '2026-05-28'
-  created: '2026-05-28T11:12:59'
-  completed: '2026-05-28T11:39:53'
+  created: '2026-05-28T22:03:26'
+  completed: '2026-05-28T22:03:26'
 - hash: 2cb04
   start: '2026-05-28'
   end: '2026-05-28'
-  created: '2026-05-28T10:24:20'
-  completed: '2026-05-28T11:45:26'
+  created: '2026-05-28T22:03:26'
+  completed: '2026-05-28T22:03:26'
 - hash: 33e74
   start: '2026-05-28'
   end: '2026-05-28'
-  created: '2026-05-28T10:22:34'
-  completed: '2026-05-28T11:52:41'
+  created: '2026-05-28T22:03:26'
+  completed: '2026-05-28T22:03:26'
 - hash: 47a77
   start: '2026-05-28'
   end: '2026-05-28'
-  created: '2026-05-28T10:26:36'
-  completed: '2026-05-28T11:39:18'
+  created: '2026-05-28T22:03:26'
+  completed: '2026-05-28T22:03:26'
 - hash: 6d662
   start: '2026-05-28'
   end: '2026-05-28'
-  created: '2026-05-28T10:49:15'
+  created: '2026-05-28T22:03:26'
   completed: null
 - hash: 8a283
   start: '2026-05-28'
-  end: '2026-05-30'
-  created: '2026-05-28T10:36:00'
-  completed: '2026-05-28T14:47:32'
+  end: '2026-05-28'
+  created: '2026-05-28T22:03:26'
+  completed: null
 - hash: 944a9
   start: '2026-05-28'
   end: '2026-05-28'
-  created: '2026-05-28T11:52:09'
-  completed: '2026-05-28T12:01:37'
+  created: '2026-05-28T22:03:26'
+  completed: '2026-05-28T22:03:26'
 - hash: a1b6a
   start: '2026-05-28'
   end: '2026-05-28'
-  created: '2026-05-28T10:19:19'
-  completed: '2026-05-28T11:59:53'
+  created: '2026-05-28T22:03:26'
+  completed: '2026-05-28T22:03:26'
 - hash: a7e8c
   start: '2026-05-28'
   end: '2026-05-28'
-  created: '2026-05-28T10:13:01'
-  completed: '2026-05-28T11:18:45'
-- hash: aed44
-  start: '2026-05-28'
-  end: '2026-05-28'
-  created: '2026-05-28T14:52:35'
-  completed: null
-- hash: b2a1a
-  start: '2026-05-28'
-  end: '2026-05-28'
-  created: '2026-05-28T14:48:23'
-  completed: null
+  created: '2026-05-28T22:03:26'
+  completed: '2026-05-28T22:03:26'
 - hash: d1f2f
   start: '2026-05-28'
   end: '2026-05-28'
-  created: '2026-05-28T10:25:29'
-  completed: '2026-05-28T12:05:07'
+  created: '2026-05-28T22:03:26'
+  completed: '2026-05-28T22:03:26'

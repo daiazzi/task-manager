@@ -1,8 +1,8 @@
-port: 53051
+port: 47209
 theme: light
 text_size: big
 show_dates: false
-show_panel: false
+show_panel: true
 auto_refresh: true
 default_duration: 1
 colors:
