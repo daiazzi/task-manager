@@ -33,6 +33,31 @@ def _normalise(text: str) -> tuple[str, str]:
     return text.replace("\r\n", "\n").replace("\r", "\n"), eol
 
 
+_HEADING_RE = re.compile(r"^(?P<indent>[ \t]*)(?P<hashes>#{1,6})(?:\s|$)")
+
+
+def ensure_blank_line_after_headings(text: str) -> str:
+    """Ensure there's an empty line after any markdown heading.
+
+    Applies to headings like `# ...`, `## ...`, `### ...` (and deeper).
+    Does not introduce duplicate blank lines.
+    """
+    lf_text, eol = _normalise(text)
+    lines = lf_text.split("\n")
+    out: list[str] = []
+
+    i = 0
+    while i < len(lines):
+        out.append(lines[i])
+        if _HEADING_RE.match(lines[i].lstrip("\ufeff")):
+            # If next line exists and is non-blank, insert a blank line.
+            if i + 1 < len(lines) and lines[i + 1].strip() != "":
+                out.append("")
+        i += 1
+
+    return eol.join(out)
+
+
 def stamp_hashes(text: str, existing: set[str]) -> tuple[str, dict[int, str]]:
     """Stamp hashes into unstamped task bullets. Returns (new_text, stamped_map).
 
@@ -60,7 +85,7 @@ def stamp_hashes(text: str, existing: set[str]) -> tuple[str, dict[int, str]]:
         new_line = f"{indent}{marker} [{check}] {prefix} {desc}".rstrip()
         lines[i] = new_line
 
-    return eol.join(lines), stamped
+    return ensure_blank_line_after_headings(eol.join(lines)), stamped
 
 
 def _split_tag_desc(body: str) -> tuple[str | None, str]:
@@ -97,7 +122,7 @@ def insert_task(
         new_line = (" " * indent) + new_bullet_body
 
     lines.insert(insert_idx, new_line)
-    return eol.join(lines)
+    return ensure_blank_line_after_headings(eol.join(lines))
 
 
 def insert_note(
@@ -114,7 +139,7 @@ def insert_note(
     insert_idx = _ensure_notes_section(lines, project)
     new_line = f"- ({note_id}): {note_text}".rstrip()
     lines.insert(insert_idx, new_line)
-    return eol.join(lines)
+    return ensure_blank_line_after_headings(eol.join(lines))
 
 
 def reorder_tasks(text: str, order: list[str]) -> str:
@@ -149,7 +174,7 @@ def reorder_tasks(text: str, order: list[str]) -> str:
         s, e = blocks[h]
         new_lines.extend(lines[s:e])
     new_lines.extend(lines[region_end:])
-    return eol.join(new_lines)
+    return ensure_blank_line_after_headings(eol.join(new_lines))
 
 
 def _block_extent(lines: list[str], start_idx: int) -> tuple[int, int]:
@@ -185,7 +210,7 @@ def set_done(text: str, hash: str, done: bool) -> str:
         body = m.group("body")
         new_check = "x" if done else " "
         lines[i] = f"{indent}{marker} [{new_check}] {body}".rstrip()
-        return eol.join(lines)
+        return ensure_blank_line_after_headings(eol.join(lines))
     raise KeyError(hash)
 
 
@@ -246,7 +271,7 @@ def set_description(text: str, hash: str, description: str) -> str:
     new_cont = [cont_indent + ln if ln != "" else "" for ln in rest]
     lines[idx + 1 : end] = new_cont
 
-    return eol.join(lines)
+    return ensure_blank_line_after_headings(eol.join(lines))
 
 
 def remove_task(text: str, hash: str) -> str:
@@ -259,7 +284,7 @@ def remove_task(text: str, hash: str) -> str:
         raise KeyError(hash)
 
     del lines[start:end]
-    return eol.join(lines)
+    return ensure_blank_line_after_headings(eol.join(lines))
 
 
 def stamp_note_hashes(text: str, existing: set[str]) -> tuple[str, dict[int, str]]:
@@ -300,7 +325,7 @@ def stamp_note_hashes(text: str, existing: set[str]) -> tuple[str, dict[int, str
         new_body = f"({note_id}): {body}".rstrip()
         lines[i] = f"{indent}{marker} {new_body}".rstrip()
 
-    return eol.join(lines), stamped
+    return ensure_blank_line_after_headings(eol.join(lines)), stamped
 
 
 def remove_note(text: str, note_id: str) -> str:
@@ -314,7 +339,7 @@ def remove_note(text: str, note_id: str) -> str:
     if start is None:
         raise KeyError(note_id)
     del lines[start:end]
-    return eol.join(lines)
+    return ensure_blank_line_after_headings(eol.join(lines))
 
 
 def set_note_content(text: str, note_id: str, content: str) -> str:
@@ -346,7 +371,7 @@ def set_note_content(text: str, note_id: str, content: str) -> str:
     cont_indent = indent + "  "
     new_rest = [cont_indent + ln if ln != "" else "" for ln in rest]
     lines[start:end] = [new_first, *new_rest]
-    return eol.join(lines)
+    return ensure_blank_line_after_headings(eol.join(lines))
 
 
 # --- helpers ----------------------------------------------------------------

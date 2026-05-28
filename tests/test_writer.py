@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from todofile.parser import existing_hashes, existing_note_ids, parse_text
 from todofile.writer import (
+    ensure_blank_line_after_headings,
     insert_task,
     remove_note,
     remove_task,
@@ -262,3 +263,15 @@ def test_set_note_content_replaces_note_block_only():
     assert "(x99999): second" in new_text
     # Task preserved
     assert "(aaaaa): task" in new_text
+
+
+def test_ensure_blank_line_after_headings_inserts_missing_blank():
+    text = "# Title\n## p\n- [ ] (aaaaa): x\n### Notes\n- (xabcde): note\n"
+    fixed = ensure_blank_line_after_headings(text)
+    lines = fixed.splitlines()
+    assert lines[1] == ""  # after H1
+    # After H2 "## p" should be blank
+    idx_h2 = lines.index("## p")
+    assert lines[idx_h2 + 1] == ""
+    idx_h3 = lines.index("### Notes")
+    assert lines[idx_h3 + 1] == ""
