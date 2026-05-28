@@ -9,6 +9,7 @@ dependencies = [
     "pyyaml>=6,<7", "httpx>=0.28.1,<0.29",
 ]
 requires-python = ">= 3.12"
+license-files = ["LICENSE"]
 
 [project.scripts]
 tsk = "task_manager.cli:main"
