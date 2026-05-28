@@ -1,6 +1,7 @@
 [project]
 name = "task-manager"
 version = "0.1.0"
+description = "Local-first task manager powered by your TODO.md"
 authors = [{name = "Duccio Aiazzi", email = "duccioa@users.noreply.github.com"}]
 dependencies = [
     "rich-click>=1.9.7,<2",
