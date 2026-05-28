@@ -5,10 +5,10 @@ from pathlib import Path
 import pytest
 from starlette.testclient import TestClient
 
-from task_manager.parser import parse, parse_text
-from task_manager.server import build_app
-from task_manager.store import ensure_sidecar
-from task_manager.writer import reorder_tasks
+from todofile.parser import parse, parse_text
+from todofile.server import build_app
+from todofile.store import ensure_sidecar
+from todofile.writer import reorder_tasks
 
 
 # --- writer.reorder_tasks ----------------------------------------------------

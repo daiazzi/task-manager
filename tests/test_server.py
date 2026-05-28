@@ -4,8 +4,8 @@ from pathlib import Path
 
 from starlette.testclient import TestClient
 
-from task_manager.server import build_app
-from task_manager.store import ensure_sidecar
+from todofile.server import build_app
+from todofile.store import ensure_sidecar
 
 
 def _setup(tmp_path: Path) -> Path:

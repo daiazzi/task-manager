@@ -4,9 +4,9 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from task_manager import daemon as daemon_mod
-from task_manager.cli import cli
-from task_manager.store import ensure_sidecar
+from todofile import daemon as daemon_mod
+from todofile.cli import cli
+from todofile.store import ensure_sidecar
 
 
 def test_status_with_path(tmp_path: Path):

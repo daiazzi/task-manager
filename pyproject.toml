@@ -1,5 +1,5 @@
 [project]
-name = "task-manager"
+name = "todofile"
 version = "0.1.0"
 description = "Local-first task manager powered by your TODO.md"
 authors = [{name = "Duccio Aiazzi", email = "duccioa@users.noreply.github.com"}]
@@ -13,24 +13,24 @@ requires-python = ">= 3.12"
 license-files = ["LICENSE"]
 
 [project.scripts]
-tsk = "task_manager.cli:main"
+tsk = "todofile.cli:main"
 
 [build-system]
 build-backend = "hatchling.build"
 requires = ["hatchling"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/task_manager"]
+packages = ["src/todofile"]
 
 [tool.hatch.build.targets.wheel.force-include]
-"src/task_manager/static" = "task_manager/static"
+"src/todofile/static" = "todofile/static"
 
 [tool.pixi.workspace]
 channels = ["conda-forge"]
 platforms = ["linux-64"]
 
 [tool.pixi.pypi-dependencies]
-task_manager = { path = ".", editable = true }
+todofile = { path = ".", editable = true }
 
 [tool.pixi.tasks]
 tsk = { cmd = "tsk", description = "Run the tsk CLI" }

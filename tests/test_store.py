@@ -3,8 +3,8 @@ from __future__ import annotations
 from datetime import date
 from pathlib import Path
 
-from task_manager.parser import parse_text
-from task_manager.store import (
+from todofile.parser import parse_text
+from todofile.store import (
     ensure_sidecar,
     load_config,
     load_tasks_yaml,
@@ -13,7 +13,7 @@ from task_manager.store import (
     sidecar_dir,
     sync,
 )
-from task_manager.models import TaskMetadata
+from todofile.models import TaskMetadata
 
 
 def test_sidecar_naming(tmp_path: Path):

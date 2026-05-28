@@ -181,7 +181,7 @@ pixi shell
 The package layout:
 
 ```
-src/task_manager/
+src/todofile/
     models.py          # dataclasses
     parser.py          # TODO.md → ParsedDocument
     writer.py          # mutate TODO.md (stamp, add, remove)

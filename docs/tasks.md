@@ -1,4 +1,4 @@
-# task-manager — Build Plan
+# todofile — Build Plan
 
 The order below is dependency-respecting. Earlier milestones unblock later
 ones. Each milestone has a brief acceptance check.
@@ -7,17 +7,17 @@ ones. Each milestone has a brief acceptance check.
 
 1. Promote `uvicorn` from the `dev` pixi feature to main `dependencies`.
 2. Add `starlette` and `pyyaml` to main `dependencies`.
-3. Register the CLI entry point: `[project.scripts] task-manager = "task_manager.cli:main"`.
-4. Add a `task-manager` pixi task for convenience.
+3. Register the CLI entry point: `[project.scripts] todofile = "todofile.cli:main"`.
+4. Add a `todofile` pixi task for convenience.
 
-**Accept**: `pixi install -e dev`, `pixi run task-manager --help` prints help.
+**Accept**: `pixi install -e dev`, `pixi run todofile --help` prints help.
 
 ## M2 — Models
 
 1. `models.py` with `Task`, `Project`, `ParsedDocument` dataclasses.
 2. `ParsedDocument.children_of(hash)` helper.
 
-**Accept**: `pixi run python -c "from task_manager.models import Task"`.
+**Accept**: `pixi run python -c "from todofile.models import Task"`.
 
 ## M3 — Parser
 
@@ -48,7 +48,7 @@ clears `completed`.
 ## M6 — CLI
 
 1. `cli.py` with `rich-click` groups.
-2. Top-level callback: `task-manager <path>` starts server.
+2. Top-level callback: `todofile <path>` starts server.
 3. `init` subcommand.
 4. `task add` / `task remove` subcommands with all flags from
    [specifications.md §4.3](specifications.md).

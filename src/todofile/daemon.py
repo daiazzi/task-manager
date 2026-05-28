@@ -73,7 +73,7 @@ def start(todo_path: Path, *, host: str = "127.0.0.1", port: int | None = None) 
     cmd = [
         sys.executable,
         "-m",
-        "task_manager.cli",
+        "todofile.cli",
         "serve",
         str(todo_path),
         "--no-browser",

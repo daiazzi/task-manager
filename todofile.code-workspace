@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+  ],
+  "settings": {
+    "python.defaultInterpreterPath": "${workspaceFolder}/.pixi/envs/default/bin/python", 
+	  "python.terminal.activateEnvironment": false,
+    "python.terminal.activateEnvInCurrentTerminal": true,
+  }
+}

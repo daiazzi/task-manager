@@ -1,4 +1,4 @@
-# task-manager — Technical Design
+# todofile — Technical Design
 
 This document is the *how* to the requirements' *what*. It locks down the
 library choices, module boundaries, data flow, and the contracts between the
@@ -24,7 +24,7 @@ recent enough to support standard ES2022).
 ## 2. Package layout
 
 ```
-src/task_manager/
+src/todofile/
     __init__.py        # version, public re-exports
     models.py          # dataclasses: Task, Project, ParsedDocument
     parser.py          # markdown → ParsedDocument
@@ -183,7 +183,7 @@ the two would invite drift.
 
 A `rich-click` `Group` named `cli`. Subcommands:
 
-- `cli(path)` — default invocation. Aliased so `task-manager <path>` works.
+- `cli(path)` — default invocation. Aliased so `todofile <path>` works.
 - `cli init(path)`.
 - `cli task add(path, ...)` — under a `task` group.
 - `cli task remove(path, hash)`.
@@ -273,7 +273,7 @@ No bundler, no transpile.
 ## 5. Data flow — start to finish
 
 ```
-$ task-manager /a/b/TODO.md
+$ todofile /a/b/TODO.md
        │
        ▼
  cli.cli(path) ──► store.ensure_sidecar()

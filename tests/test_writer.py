@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from task_manager.parser import existing_hashes, parse_text
-from task_manager.writer import insert_task, remove_task, stamp_hashes
+from todofile.parser import existing_hashes, parse_text
+from todofile.writer import insert_task, remove_task, stamp_hashes
 
 
 def test_stamp_hashes_adds_to_unstamped():

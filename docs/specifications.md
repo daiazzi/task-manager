@@ -1,4 +1,4 @@
-# task-manager — Specifications
+# todofile — Specifications
 
 Concrete contracts. Where [requirements.md](requirements.md) says *what* and
 [technical-design.md](technical-design.md) says *how*, this document says
@@ -141,34 +141,34 @@ port: null                # int (1024-65535) or null for auto
 | 2 | Click usage error (handled by Click). |
 | 3 | Internal error (uncaught exception — also prints traceback to stderr). |
 
-### 4.1 `task-manager <path>`
+### 4.1 `todofile <path>`
 
 - Errors if `<path>` doesn't exist or is not a regular file.
 - Errors if `<path>` is not readable.
 - Auto-inits the sidecar dir silently if missing.
 - Output before serving:
   ```
-  task-manager: serving /abs/path/to/TODO.md
-  task-manager: open http://127.0.0.1:8421
+  todofile: serving /abs/path/to/TODO.md
+  todofile: open http://127.0.0.1:8421
   ```
 - Opens the URL in the default browser unless `--no-browser` is passed (or
   `BROWSER=none` is set in environment).
-- Ctrl-C exits with code 0 and prints `task-manager: stopped`.
+- Ctrl-C exits with code 0 and prints `todofile: stopped`.
 
-### 4.2 `task-manager init <path>`
+### 4.2 `todofile init <path>`
 
 - Same path validation as above.
 - Creates the sidecar dir if missing.
 - Stamps hashes into every unstamped task in `<path>`.
 - Output:
   ```
-  task-manager: initialized .TODO.md.dir
-  task-manager: stamped N new task(s)
+  todofile: initialized .TODO.md.dir
+  todofile: stamped N new task(s)
   ```
   Where `N` may be 0.
 - Idempotent — running twice is a no-op aside from the message.
 
-### 4.3 `task-manager task add`
+### 4.3 `todofile task add`
 
 Required flags: `--description`. At least one of: `--project` (if multiple
 projects exist and no `--parent`), or `--parent`.
@@ -188,17 +188,17 @@ Errors:
 | `--duration` negative or zero | `--duration must be a positive integer.` |
 | `--end-date` before `--start-date` | `--end-date is before --start-date.` |
 
-On success: prints the assigned hash, e.g. `task-manager: added (a4f9c).`
+On success: prints the assigned hash, e.g. `todofile: added (a4f9c).`
 
-### 4.4 `task-manager task remove <hash>`
+### 4.4 `todofile task remove <hash>`
 
 - Errors if the hash is not in the markdown.
 - Errors if the hash is malformed (not 5 hex chars).
 - If the hash is a parent with subtasks, removes the parent and all subtasks
   (their lines are contiguously indented under the parent in the md).
-- Output: `task-manager: removed (a4f9c) and N subtask(s).`
+- Output: `todofile: removed (a4f9c) and N subtask(s).`
 
-### 4.5 `task-manager help format`
+### 4.5 `todofile help format`
 
 - Always exits 0.
 - Prints the rendered format spec to stdout using rich. Content is a

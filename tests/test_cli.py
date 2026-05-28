@@ -4,9 +4,9 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from task_manager.cli import cli
-from task_manager.parser import parse
-from task_manager.store import load_tasks_yaml, sidecar_dir
+from todofile.cli import cli
+from todofile.parser import parse
+from todofile.store import load_tasks_yaml, sidecar_dir
 
 
 def test_init_creates_sidecar_and_stamps(tmp_path: Path):

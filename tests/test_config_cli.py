@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from task_manager.cli import cli
-from task_manager.store import ensure_sidecar, load_config, sidecar_dir
+from todofile.cli import cli
+from todofile.store import ensure_sidecar, load_config, sidecar_dir
 
 
 @pytest.fixture
@@ -126,7 +126,7 @@ def test_config_show_dates_on(init_todo: Path, monkeypatch):
     # Flip to false first, then back to true
     cfg = load_config(init_todo)
     cfg.show_dates = False
-    from task_manager.store import save_config
+    from todofile.store import save_config
     save_config(init_todo, cfg)
 
     runner = CliRunner()

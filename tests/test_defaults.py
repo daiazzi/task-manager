@@ -5,9 +5,9 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from task_manager.cli import cli
-from task_manager.parser import parse_text
-from task_manager.store import (
+from todofile.cli import cli
+from todofile.parser import parse_text
+from todofile.store import (
     ensure_sidecar,
     load_config,
     load_tasks_yaml,
@@ -48,7 +48,7 @@ def test_sync_does_not_overwrite_existing_dates(tmp_path: Path):
     p.write_text("## p\n- [ ] (a4f9c): x\n")
     ensure_sidecar(p)
     sync(parse_text(p.read_text(), path=p), p)
-    from task_manager.store import set_dates
+    from todofile.store import set_dates
     set_dates(p, "a4f9c", date(2030, 1, 1), date(2030, 1, 5))
 
     sync(parse_text(p.read_text(), path=p), p)

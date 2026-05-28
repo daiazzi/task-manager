@@ -1,4 +1,4 @@
-# task-manager — Requirements
+# todofile — Requirements
 
 ## 1. Purpose
 
@@ -38,8 +38,8 @@ It is invoked per-file: each `TODO.md` has its own sidecar directory next to it.
   completed timestamp.
 - The manager edits `TODO.md` in three narrow cases only:
   1. Stamping a 5-character hash into a new task on first sight.
-  2. `task-manager task add` — inserts a new bullet.
-  3. `task-manager task remove <hash>` — deletes a bullet.
+  2. `todofile task add` — inserts a new bullet.
+  3. `todofile task remove <hash>` — deletes a bullet.
 
 ### 4.2 Task identity
 
@@ -122,18 +122,18 @@ Built with [`rich-click`](https://github.com/ewels/rich-click).
 
 | Command | Purpose |
 |---|---|
-| `task-manager <path/to/TODO.md>` | Auto-init if needed, start the web server, open browser. |
-| `task-manager init <path/to/TODO.md>` | Create the sidecar dir and stamp hashes into existing tasks. Does not start the server. |
-| `task-manager task add ...` | Add a task (see below). |
-| `task-manager task remove <hash>` | Remove the task with the given hash from the markdown and its yaml entry. |
-| `task-manager help format` | Print the TODO.md format spec to the terminal with rich formatting. |
+| `todofile <path/to/TODO.md>` | Auto-init if needed, start the web server, open browser. |
+| `todofile init <path/to/TODO.md>` | Create the sidecar dir and stamp hashes into existing tasks. Does not start the server. |
+| `todofile task add ...` | Add a task (see below). |
+| `todofile task remove <hash>` | Remove the task with the given hash from the markdown and its yaml entry. |
+| `todofile help format` | Print the TODO.md format spec to the terminal with rich formatting. |
 
-`task-manager <path>` auto-inits silently if the sidecar dir does not exist.
+`todofile <path>` auto-inits silently if the sidecar dir does not exist.
 
 ### 6.2 `task add`
 
 ```
-task-manager task add <path/to/TODO.md> [options]
+todofile task add <path/to/TODO.md> [options]
 ```
 
 | Flag | Short | Meaning |
@@ -160,7 +160,7 @@ Insertion point in `TODO.md`:
 ### 6.3 `task remove`
 
 ```
-task-manager task remove <path/to/TODO.md> <hash>
+todofile task remove <path/to/TODO.md> <hash>
 ```
 
 Removes the bullet line (and any subtask lines if the hash is a parent) from
@@ -170,7 +170,7 @@ is not found, errors with a clear message.
 ### 6.4 `help format`
 
 ```
-task-manager help format
+todofile help format
 ```
 
 Prints the TODO.md format spec (a rendered version of §5 of this document)
@@ -181,7 +181,7 @@ sibling subcommands.
 
 ### 7.1 Lifecycle
 
-- `task-manager <path>` starts an ASGI server bound to `127.0.0.1` on an
+- `todofile <path>` starts an ASGI server bound to `127.0.0.1` on an
   auto-selected free port, unless `config.yaml` pins one. Prints the URL and
   blocks until Ctrl-C.
 - VS Code Simple Browser-compatible: plain `http://127.0.0.1:<port>`, no
@@ -250,7 +250,7 @@ directly.
 - Add a dep from PyPI: `pixi add --pypi <pkg>`
 - Add a dep from conda-forge: `pixi add <pkg>`
 - Run tests: `pixi run pytest`
-- Run the CLI in dev: `pixi run task-manager <path>`
+- Run the CLI in dev: `pixi run todofile <path>`
 
 The `README.md` documents this for end-users and contributors.
 

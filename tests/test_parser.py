@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from task_manager.models import NO_PROJECT
-from task_manager.parser import parse_text
+from todofile.models import NO_PROJECT
+from todofile.parser import parse_text
 
 
 def test_simple_task():
@@ -200,7 +200,7 @@ def test_star_marker():
 
 
 def test_existing_hashes_extraction():
-    from task_manager.parser import existing_hashes
+    from todofile.parser import existing_hashes
     text = "- [ ] (a4f9c): x\n- [ ] foo(b3d8a): y\n"
     assert existing_hashes(text) == {"a4f9c", "b3d8a"}
 

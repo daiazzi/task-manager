@@ -5,10 +5,10 @@ from pathlib import Path
 import pytest
 from starlette.testclient import TestClient
 
-from task_manager.parser import parse
-from task_manager.server import build_app
-from task_manager.store import ensure_sidecar, load_tasks_yaml
-from task_manager.writer import set_done
+from todofile.parser import parse
+from todofile.server import build_app
+from todofile.store import ensure_sidecar, load_tasks_yaml
+from todofile.writer import set_done
 
 
 # --- writer.set_done ---------------------------------------------------------

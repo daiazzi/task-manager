@@ -1,4 +1,4 @@
-// task-manager frontend — vanilla ES modules, no build step.
+// todofile frontend — vanilla ES modules, no build step.
 
 const state = {
   todoPath: '',
@@ -23,7 +23,7 @@ const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
 function storageKey(suffix) {
-  return `task-manager:${state.todoPath}:${suffix}`;
+  return `todofile:${state.todoPath}:${suffix}`;
 }
 
 function loadPrefs() {

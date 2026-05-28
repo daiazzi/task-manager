@@ -221,7 +221,7 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# task-manager daemon ephemera
+# todofile daemon ephemera
 *.dir/daemon.pid
 *.dir/daemon.url
 *.dir/daemon.log

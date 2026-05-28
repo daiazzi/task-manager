@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from task_manager import daemon as daemon_mod
+from todofile import daemon as daemon_mod
 
 
 def _wait_for_url(url: str, timeout: float = 5.0) -> bool:
@@ -60,7 +60,7 @@ def test_stop_when_not_running(todo: Path):
 
 
 def test_stop_cleans_stale_pid(todo: Path):
-    from task_manager.store import ensure_sidecar, sidecar_dir
+    from todofile.store import ensure_sidecar, sidecar_dir
     ensure_sidecar(todo)
     (sidecar_dir(todo) / "daemon.pid").write_text("99999999\n")
     (sidecar_dir(todo) / "daemon.url").write_text("http://127.0.0.1:1\n")

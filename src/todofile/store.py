@@ -15,7 +15,7 @@ _AGENT_MD_SOURCE = Path(__file__).parent / "static" / "agent.md"
 
 
 _DEFAULT_CONFIG_BODY = """\
-# task-manager config — edit and run `tsk` to apply.
+# todofile config — edit and run `tsk` to apply.
 port: null
 
 theme: dark             # "dark" or "light"

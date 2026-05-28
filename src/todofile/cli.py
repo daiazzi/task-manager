@@ -89,7 +89,7 @@ def _load_doc(path: Path):
 
 
 @click.group(invoke_without_command=False)
-@click.version_option(package_name="task-manager", prog_name="tsk")
+@click.version_option(package_name="todofile", prog_name="tsk")
 def cli() -> None:
     """Local task manager backed by a TODO.md.
 
