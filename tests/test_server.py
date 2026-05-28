@@ -89,4 +89,6 @@ def test_api_includes_title_and_colors(tmp_path: Path):
     assert "default" in data["colors"]
     assert data["theme"] in ("dark", "light")
     assert isinstance(data.get("auto_refresh"), bool)
-    assert isinstance(data.get("show_panel"), bool)
+    assert isinstance(data.get("show_gantt"), bool)
+    assert isinstance(data.get("show_calendar"), bool)
+    assert isinstance(data.get("show_weekends"), bool)

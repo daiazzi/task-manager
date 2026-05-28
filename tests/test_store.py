@@ -166,39 +166,69 @@ def test_load_config_invalid_theme_falls_back(tmp_path: Path):
     assert load_config(p).theme == "dark"
 
 
-def test_load_config_show_panel_default(tmp_path: Path):
+def test_load_config_panel_flags_defaults(tmp_path: Path):
     p = tmp_path / "TODO.md"
     p.write_text("# x\n")
     ensure_sidecar(p)
-    assert load_config(p).show_panel is True
+    cfg = load_config(p)
+    assert cfg.show_gantt is False
+    assert cfg.show_calendar is False
+    assert cfg.show_weekends is False
 
 
-def test_load_config_show_panel_false(tmp_path: Path):
+def test_load_config_panel_flags_true(tmp_path: Path):
     p = tmp_path / "TODO.md"
     p.write_text("# x\n")
     ensure_sidecar(p)
-    (sidecar_dir(p) / "config.yaml").write_text("show_panel: false\n")
-    assert load_config(p).show_panel is False
+    (sidecar_dir(p) / "config.yaml").write_text(
+        "show_gantt: true\nshow_calendar: true\nshow_weekends: true\n"
+    )
+    cfg = load_config(p)
+    assert cfg.show_gantt is True
+    assert cfg.show_calendar is True
+    assert cfg.show_weekends is True
 
 
-def test_load_config_show_panel_invalid_falls_back(tmp_path: Path):
+def test_load_config_panel_flags_invalid_fall_back(tmp_path: Path):
     p = tmp_path / "TODO.md"
     p.write_text("# x\n")
     ensure_sidecar(p)
-    (sidecar_dir(p) / "config.yaml").write_text("show_panel: nope\n")
-    assert load_config(p).show_panel is True
+    (sidecar_dir(p) / "config.yaml").write_text(
+        "show_gantt: nope\nshow_calendar: 5\nshow_weekends: hi\n"
+    )
+    cfg = load_config(p)
+    assert cfg.show_gantt is False
+    assert cfg.show_calendar is False
+    assert cfg.show_weekends is False
 
 
-def test_save_config_roundtrips_show_panel(tmp_path: Path):
+def test_save_config_roundtrips_panel_flags(tmp_path: Path):
     from todofile.store import save_config
 
     p = tmp_path / "TODO.md"
     p.write_text("# x\n")
     ensure_sidecar(p)
     cfg = load_config(p)
-    cfg.show_panel = False
+    cfg.show_gantt = True
+    cfg.show_calendar = True
+    cfg.show_weekends = True
     save_config(p, cfg)
-    assert load_config(p).show_panel is False
+    cfg2 = load_config(p)
+    assert cfg2.show_gantt is True
+    assert cfg2.show_calendar is True
+    assert cfg2.show_weekends is True
+
+
+def test_load_config_ignores_legacy_show_panel(tmp_path: Path):
+    p = tmp_path / "TODO.md"
+    p.write_text("# x\n")
+    ensure_sidecar(p)
+    (sidecar_dir(p) / "config.yaml").write_text("show_panel: false\n")
+    cfg = load_config(p)
+    # Legacy key is dropped silently in dev stage; new flags use their defaults.
+    assert not hasattr(cfg, "show_panel")
+    assert cfg.show_gantt is False
+    assert cfg.show_calendar is False
 
 
 def test_ensure_sidecar_copies_agent_md(tmp_path: Path):

@@ -7,14 +7,17 @@ const state = {
   projects: [],
   warnings: [],
   activeProjects: new Set(),
-  view: 'gantt',
   showCompleted: true,
   showDates: true,
+  showGantt: false,
+  showCalendar: false,
+  showWeekends: false,
   autoRefresh: true,
   calendarMonth: null,
   theme: 'dark',
   textSize: 'medium',
   leftPaneWidth: 480,
+  ganttPaneWidth: 480,
   expandedNotes: new Set(),
 };
 
@@ -29,8 +32,6 @@ function storageKey(suffix) {
 
 function loadPrefs() {
   try {
-    const v = localStorage.getItem(storageKey('view'));
-    if (v === 'gantt' || v === 'calendar') state.view = v;
     const sc = localStorage.getItem(storageKey('show-completed'));
     if (sc !== null) state.showCompleted = sc === '1';
     const sd = localStorage.getItem(storageKey('show-dates'));
@@ -39,6 +40,8 @@ function loadPrefs() {
     if (th === 'light' || th === 'dark') state.theme = th;
     const lw = parseInt(localStorage.getItem(storageKey('left-w')) || '', 10);
     if (Number.isFinite(lw) && lw >= 240 && lw <= 1200) state.leftPaneWidth = lw;
+    const gw = parseInt(localStorage.getItem(storageKey('gantt-w')) || '', 10);
+    if (Number.isFinite(gw) && gw >= 200 && gw <= 2000) state.ganttPaneWidth = gw;
   } catch (e) {
     /* localStorage unavailable */
   }
@@ -46,11 +49,11 @@ function loadPrefs() {
 
 function savePrefs() {
   try {
-    localStorage.setItem(storageKey('view'), state.view);
     localStorage.setItem(storageKey('show-completed'), state.showCompleted ? '1' : '0');
     localStorage.setItem(storageKey('show-dates'), state.showDates ? '1' : '0');
     localStorage.setItem(storageKey('theme'), state.theme);
     localStorage.setItem(storageKey('left-w'), String(state.leftPaneWidth));
+    localStorage.setItem(storageKey('gantt-w'), String(state.ganttPaneWidth));
   } catch (e) {}
 }
 
@@ -64,6 +67,15 @@ function applyTextSize() {
 
 function applyLeftPaneWidth() {
   document.documentElement.style.setProperty('--left-pane-w', state.leftPaneWidth + 'px');
+  document.documentElement.style.setProperty('--gantt-pane-w', state.ganttPaneWidth + 'px');
+}
+
+function applyPanelVisibility() {
+  $('#gantt-pane').hidden = !state.showGantt;
+  $('#calendar-pane').hidden = !state.showCalendar;
+  $('#splitter-gantt').hidden = !state.showGantt;
+  $('#splitter-calendar').hidden = !state.showCalendar;
+  if (!state.showGantt) $('#task-list').style.paddingTop = '';
 }
 
 function applyTheme() {
@@ -205,6 +217,19 @@ async function postNoteContent(noteId, content) {
   return r.json();
 }
 
+async function postConfig(patch) {
+  const r = await fetch('/api/config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  });
+  if (!r.ok) {
+    const data = await r.json().catch(() => ({ error: 'config update failed' }));
+    throw new Error(data.error || 'config update failed');
+  }
+  return r.json();
+}
+
 async function postDates(hash, start, end) {
   const r = await fetch(`/api/tasks/${hash}/dates`, {
     method: 'POST',
@@ -303,18 +328,11 @@ function render() {
   renderBrand();
   renderProjectChips();
   renderTodoPath();
-  renderViewToggle();
   renderShowCompleted();
+  applyPanelVisibility();
   renderList();
-  if (state.view === 'gantt') {
-    $('#gantt-view').hidden = false;
-    $('#calendar-view').hidden = true;
-    renderGantt();
-  } else {
-    $('#gantt-view').hidden = true;
-    $('#calendar-view').hidden = false;
-    renderCalendar();
-  }
+  if (state.showGantt) renderGantt();
+  if (state.showCalendar) renderCalendar();
 }
 
 function findTaskByHash(hash) {
@@ -335,11 +353,6 @@ function renderTodoPath() {
 
 function renderBrand() {
   $('#brand').textContent = state.title || 'tsk';
-}
-
-function renderViewToggle() {
-  $('#view-gantt').classList.toggle('active', state.view === 'gantt');
-  $('#view-calendar').classList.toggle('active', state.view === 'calendar');
 }
 
 function renderShowCompleted() {
@@ -569,8 +582,8 @@ function renderTaskRow(t, isSubtask) {
       t.start = result.start;
       t.end = result.end;
       prev = { start: result.start, end: result.end };
-      if (state.view === 'gantt') renderGantt();
-      else renderCalendar();
+      if (state.showGantt) renderGantt();
+      if (state.showCalendar) renderCalendar();
     } catch (e) {
       start.value = prev.start || '';
       end.value = prev.end || '';
@@ -677,8 +690,7 @@ function computeReorder(project, parentHash, movedHash, targetHash, before) {
 
 // ---------- splitter ----------
 
-function initSplitter() {
-  const splitter = $('#splitter');
+function attachSplitter(splitter, getLeftEdgePx, setWidth, minW, maxW) {
   if (!splitter) return;
   let dragging = false;
   splitter.addEventListener('pointerdown', (e) => {
@@ -689,12 +701,11 @@ function initSplitter() {
   });
   splitter.addEventListener('pointermove', (e) => {
     if (!dragging) return;
-    const main = $('#main').getBoundingClientRect();
-    let w = e.clientX - main.left;
-    w = Math.max(240, Math.min(1200, w));
-    state.leftPaneWidth = w;
+    let w = e.clientX - getLeftEdgePx();
+    w = Math.max(minW, Math.min(maxW, w));
+    setWidth(w);
     applyLeftPaneWidth();
-    if (state.view === 'gantt') renderGantt();
+    if (state.showGantt) renderGantt();
   });
   splitter.addEventListener('pointerup', (e) => {
     dragging = false;
@@ -703,6 +714,31 @@ function initSplitter() {
     splitter.releasePointerCapture?.(e.pointerId);
     savePrefs();
   });
+}
+
+function initSplitters() {
+  // Splitter immediately right of the task list: resizes the task list.
+  attachSplitter(
+    $('#splitter-gantt'),
+    () => $('#main').getBoundingClientRect().left,
+    (w) => { state.leftPaneWidth = w; },
+    240,
+    1200,
+  );
+  // Splitter immediately right of the gantt pane: resizes the gantt pane (or
+  // resizes the task list when gantt is hidden — same DOM element used).
+  attachSplitter(
+    $('#splitter-calendar'),
+    () => $('#gantt-pane').hidden
+      ? $('#main').getBoundingClientRect().left
+      : $('#gantt-pane').getBoundingClientRect().left,
+    (w) => {
+      if ($('#gantt-pane').hidden) state.leftPaneWidth = w;
+      else state.ganttPaneWidth = w;
+    },
+    240,
+    2000,
+  );
 }
 
 // ---------- modal ----------
@@ -1072,15 +1108,46 @@ function restLines(s) {
 
 // ---------- Gantt ----------
 
+const WEEKDAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']; // getUTCDay(): 0=Sun..6=Sat
+
+function isWeekend(d) {
+  const dow = d.getUTCDay();
+  return dow === 0 || dow === 6;
+}
+
+// Build the list of {kind, hash?} rows mirroring renderList().
+function ganttRowDescriptors() {
+  const out = [];
+  for (const p of state.projects) {
+    if (!state.activeProjects.has(p.name)) continue;
+    const tasks = p.tasks.filter((t) => state.showCompleted || !t.done);
+    const notes = p.notes || [];
+    if (tasks.length === 0 && notes.length === 0) continue;
+    out.push({ kind: 'project-header', project: p.name });
+    if (notes.length) out.push({ kind: 'project-notes', project: p.name });
+    for (const t of tasks) {
+      out.push({ kind: 'task', hash: t.hash, task: t });
+      for (const c of t.subtasks || []) {
+        if (!state.showCompleted && c.done) continue;
+        out.push({ kind: 'task', hash: c.hash, task: c });
+      }
+    }
+  }
+  return out;
+}
+
 function renderGantt() {
   const host = $('#gantt-view');
   host.innerHTML = '';
 
-  const tasks = visibleTasks();
+  const descriptors = ganttRowDescriptors();
+  const visibleTaskList = descriptors.filter((d) => d.kind === 'task').map((d) => d.task);
+
+  // Date range: min/max of all task dates ±2 days padding.
   const today = todayUTC();
   let minD = null;
   let maxD = null;
-  for (const t of tasks) {
+  for (const t of visibleTaskList) {
     const s = parseDate(t.start);
     const e = parseDate(t.end);
     if (s && (!minD || s < minD)) minD = s;
@@ -1092,69 +1159,172 @@ function renderGantt() {
   if (!maxD) maxD = addDays(today, 14);
   minD = addDays(minD, -2);
   maxD = addDays(maxD, 2);
-  const days = dayDiff(minD, maxD) + 1;
-  const dayWidth = Math.max(28, Math.floor(900 / days));
+
+  // Build the list of visible days (skip weekends when configured).
+  const days = [];
+  for (let i = 0; i <= dayDiff(minD, maxD); i++) {
+    const d = addDays(minD, i);
+    if (!state.showWeekends && isWeekend(d)) continue;
+    days.push(d);
+  }
+  if (days.length === 0) days.push(today);
+
+  // Map an ISO date string -> visible-day index (or nearest preceding visible day for weekend dates).
+  const visibleIdxOf = (d) => {
+    // Use the index of the first visible day >= d if d is hidden (Sat/Sun and weekends off).
+    // For a bar that starts on Saturday, we want it to start at the next visible day (Monday).
+    // For a bar that ends on Sunday, we want it to end at the previous visible day (Friday).
+    for (let i = 0; i < days.length; i++) {
+      if (days[i].getTime() === d.getTime()) return i;
+    }
+    return null;
+  };
+
+  const dayWidth = 28;
+  const totalW = days.length * dayWidth;
 
   const wrap = document.createElement('div');
   wrap.className = 'gantt';
-  wrap.style.minWidth = days * dayWidth + 'px';
+  wrap.style.width = totalW + 'px';
+  wrap.style.minWidth = totalW + 'px';
 
+  // Header: two rows — day number on top, weekday initial below.
   const header = document.createElement('div');
   header.className = 'gantt-header';
-  for (let i = 0; i < days; i++) {
-    const d = addDays(minD, i);
-    const lbl = document.createElement('div');
-    lbl.className = 'gantt-day-label';
-    const dow = d.getUTCDay();
-    if (dow === 0 || dow === 6) lbl.classList.add('weekend');
-    if (d.getTime() === today.getTime()) lbl.classList.add('today');
-    lbl.style.width = dayWidth + 'px';
-    lbl.textContent = d.getUTCDate();
-    lbl.title = fmtDate(d);
-    header.appendChild(lbl);
+  const headerRow1 = document.createElement('div');
+  headerRow1.className = 'gantt-header-row gantt-header-dates';
+  const headerRow2 = document.createElement('div');
+  headerRow2.className = 'gantt-header-row gantt-header-days';
+  for (const d of days) {
+    const c1 = document.createElement('div');
+    c1.className = 'gantt-day-cell';
+    c1.style.width = dayWidth + 'px';
+    if (d.getTime() === today.getTime()) c1.classList.add('today');
+    c1.textContent = d.getUTCDate();
+    c1.title = fmtDate(d);
+    headerRow1.appendChild(c1);
+
+    const c2 = document.createElement('div');
+    c2.className = 'gantt-day-cell';
+    c2.style.width = dayWidth + 'px';
+    if (d.getTime() === today.getTime()) c2.classList.add('today');
+    c2.textContent = WEEKDAY_LETTERS[d.getUTCDay()];
+    headerRow2.appendChild(c2);
   }
+  header.appendChild(headerRow1);
+  header.appendChild(headerRow2);
   wrap.appendChild(header);
 
+  // Body: rows mirroring task-list rows.
   const body = document.createElement('div');
   body.className = 'gantt-body';
+  body.style.width = totalW + 'px';
 
-  for (const t of tasks) {
+  // Background vertical day-grid lines (one column div per visible day).
+  const grid = document.createElement('div');
+  grid.className = 'gantt-grid';
+  for (let i = 0; i < days.length; i++) {
+    const col = document.createElement('div');
+    col.className = 'gantt-grid-col';
+    if (days[i].getTime() === today.getTime()) col.classList.add('today');
+    col.style.left = (i * dayWidth) + 'px';
+    col.style.width = dayWidth + 'px';
+    grid.appendChild(col);
+  }
+  body.appendChild(grid);
+
+  // Rows: one per descriptor, in the same order as the task list.
+  for (const d of descriptors) {
     const row = document.createElement('div');
-    row.className = 'gantt-row';
-    const s = parseDate(t.start);
-    const e = parseDate(t.end);
-    if (s || e) {
-      const start = s || e;
-      const end = e || s;
-      const x0 = dayDiff(minD, start) * dayWidth;
-      const w = Math.max((dayDiff(start, end) + 1) * dayWidth - 4, 6);
-      const bar = document.createElement('div');
-      bar.className = 'gantt-bar' + (t.done ? ' done' : '');
-      bar.style.left = x0 + 2 + 'px';
-      bar.style.width = w + 'px';
-      if (!t.done) {
-        const c = colorFor(t.tag);
-        bar.style.background = withAlpha(c, 0.4);
-        bar.style.borderColor = c;
+    row.className = 'gantt-row gantt-row-' + d.kind;
+    row.dataset.kind = d.kind;
+    if (d.hash) row.dataset.hash = d.hash;
+
+    if (d.kind === 'task') {
+      const t = d.task;
+      const s = parseDate(t.start);
+      const e = parseDate(t.end);
+      if (s || e) {
+        const start = s || e;
+        const end = e || s;
+        // Find visible indices (clamped to range).
+        let startIdx = null;
+        let endIdx = null;
+        for (let i = 0; i < days.length; i++) {
+          if (days[i].getTime() >= start.getTime()) { startIdx = i; break; }
+        }
+        for (let i = days.length - 1; i >= 0; i--) {
+          if (days[i].getTime() <= end.getTime()) { endIdx = i; break; }
+        }
+        if (startIdx !== null && endIdx !== null && endIdx >= startIdx) {
+          const x = startIdx * dayWidth + 2;
+          const w = (endIdx - startIdx + 1) * dayWidth - 4;
+          const bar = document.createElement('div');
+          bar.className = 'gantt-bar' + (t.done ? ' done' : '');
+          bar.style.left = x + 'px';
+          bar.style.width = Math.max(w, 6) + 'px';
+          if (!t.done) {
+            const c = colorFor(t.tag);
+            bar.style.background = c;
+            bar.style.borderColor = c;
+          }
+          bar.title = `${t.hash} ${t.description}${t.start ? `\nstart: ${t.start}` : ''}${t.end ? `\nend: ${t.end}` : ''}`;
+          bar.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            openTaskModal(t);
+          });
+          row.appendChild(bar);
+        }
       }
-      bar.title = `${t.hash} ${t.description}${t.start ? `\nstart: ${t.start}` : ''}${t.end ? `\nend: ${t.end}` : ''}`;
-      bar.textContent = (t.tag ? `${t.tag} ` : '') + firstLine(t.description);
-      row.appendChild(bar);
     }
     body.appendChild(row);
   }
 
-  // today line
-  if (today >= minD && today <= maxD) {
-    const x = dayDiff(minD, today) * dayWidth + dayWidth / 2;
+  // Today line.
+  const todayIdx = days.findIndex((d) => d.getTime() === today.getTime());
+  if (todayIdx >= 0) {
     const line = document.createElement('div');
     line.className = 'gantt-today-line';
-    line.style.left = x + 'px';
+    line.style.left = (todayIdx * dayWidth + dayWidth / 2) + 'px';
     body.appendChild(line);
   }
 
   wrap.appendChild(body);
   host.appendChild(wrap);
+
+  // Mirror task-list row heights into gantt rows.
+  syncGanttRowHeights();
+}
+
+function syncGanttRowHeights() {
+  const taskListHost = $('#task-list');
+  if (!taskListHost) return;
+  // Push the task list down by the gantt header height so row tops line up.
+  const ganttHeader = document.querySelector('#gantt-view .gantt-header');
+  const headerH = ganttHeader ? ganttHeader.getBoundingClientRect().height : 0;
+  taskListHost.style.paddingTop = headerH + 'px';
+
+  const ganttRows = $$('#gantt-view .gantt-row');
+  if (ganttRows.length === 0) return;
+  // Collect the matching task-list elements in document order.
+  const sources = [];
+  for (const section of taskListHost.querySelectorAll('.project-section')) {
+    const header = section.querySelector(':scope > .project-header');
+    if (header) sources.push(header);
+    const notes = section.querySelector(':scope > .project-notes');
+    if (notes) sources.push(notes);
+    for (const row of section.querySelectorAll(':scope > .task-row')) sources.push(row);
+  }
+  const n = Math.min(sources.length, ganttRows.length);
+  // Use successive tops so any inter-section borders/margins are absorbed.
+  const tops = sources.map((el) => el.getBoundingClientRect().top);
+  const lastBottom = n > 0
+    ? sources[n - 1].getBoundingClientRect().bottom
+    : 0;
+  for (let i = 0; i < n; i++) {
+    const nextTop = i + 1 < n ? tops[i + 1] : lastBottom;
+    ganttRows[i].style.height = (nextTop - tops[i]) + 'px';
+  }
 }
 
 // ---------- Calendar ----------
@@ -1269,25 +1439,26 @@ function toast(message, kind) {
 
 async function init() {
   $('#refresh-btn').addEventListener('click', refresh);
-  $('#view-gantt').addEventListener('click', () => {
-    state.view = 'gantt';
-    savePrefs();
-    render();
-  });
-  $('#view-calendar').addEventListener('click', () => {
-    state.view = 'calendar';
-    savePrefs();
-    render();
-  });
   $('#show-completed').addEventListener('change', (e) => {
     state.showCompleted = e.target.checked;
     savePrefs();
     render();
   });
-  $('#show-dates').addEventListener('change', (e) => {
+  $('#show-dates').addEventListener('change', async (e) => {
     state.showDates = e.target.checked;
     applyDatesAttr();
     savePrefs();
+    try { await postConfig({ show_dates: state.showDates }); } catch (err) { toast(err.message, 'error'); }
+  });
+  $('#show-gantt').addEventListener('change', async (e) => {
+    state.showGantt = e.target.checked;
+    render();
+    try { await postConfig({ show_gantt: state.showGantt }); } catch (err) { toast(err.message, 'error'); }
+  });
+  $('#show-calendar').addEventListener('change', async (e) => {
+    state.showCalendar = e.target.checked;
+    render();
+    try { await postConfig({ show_calendar: state.showCalendar }); } catch (err) { toast(err.message, 'error'); }
   });
   document.addEventListener('keydown', (e) => {
     if ((e.key === 'Escape' || e.key === 'Esc') && !$('#modal-host').hidden) {
@@ -1306,6 +1477,9 @@ async function init() {
     state.todoPath = data.todo_path || '';
     if (data.theme === 'light' || data.theme === 'dark') state.theme = data.theme;
     if (typeof data.show_dates === 'boolean') state.showDates = data.show_dates;
+    if (typeof data.show_gantt === 'boolean') state.showGantt = data.show_gantt;
+    if (typeof data.show_calendar === 'boolean') state.showCalendar = data.show_calendar;
+    if (typeof data.show_weekends === 'boolean') state.showWeekends = data.show_weekends;
     if (['small', 'medium', 'big'].includes(data.text_size)) state.textSize = data.text_size;
     loadPrefs();
     applyTheme();
@@ -1313,7 +1487,9 @@ async function init() {
     applyTextSize();
     applyLeftPaneWidth();
     $('#show-dates').checked = state.showDates;
-    initSplitter();
+    $('#show-gantt').checked = state.showGantt;
+    $('#show-calendar').checked = state.showCalendar;
+    initSplitters();
     applyData(data);
     render();
     ensureAutoRefresh();

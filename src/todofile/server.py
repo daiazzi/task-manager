@@ -49,7 +49,9 @@ def _serialise(doc: ParsedDocument, todo_path: Path) -> dict:
         "theme": cfg.theme,
         "text_size": cfg.text_size,
         "show_dates": cfg.show_dates,
-        "show_panel": cfg.show_panel,
+        "show_gantt": cfg.show_gantt,
+        "show_calendar": cfg.show_calendar,
+        "show_weekends": cfg.show_weekends,
         "auto_refresh": cfg.auto_refresh,
         "projects": [
             {
@@ -286,6 +288,38 @@ def build_app(todo_path: Path) -> Starlette:
         doc = _reload(todo_path)
         return JSONResponse(_serialise(doc, todo_path))
 
+    async def post_config(request: Request) -> Response:
+        body = await request.body()
+        try:
+            data = json.loads(body) if body else {}
+        except json.JSONDecodeError:
+            return JSONResponse({"error": "Invalid JSON body."}, status_code=400)
+        if not isinstance(data, dict):
+            return JSONResponse({"error": "Expected a JSON object."}, status_code=400)
+
+        cfg = store.load_config(todo_path)
+        allowed_bool = {"show_gantt", "show_calendar", "show_weekends", "show_dates"}
+        for k, v in data.items():
+            if k in allowed_bool:
+                if not isinstance(v, bool):
+                    return JSONResponse(
+                        {"error": f"`{k}` must be a boolean."}, status_code=400
+                    )
+                setattr(cfg, k, v)
+            else:
+                return JSONResponse(
+                    {"error": f"Unknown or read-only config key '{k}'."}, status_code=400
+                )
+        store.save_config(todo_path, cfg)
+        return JSONResponse(
+            {
+                "show_gantt": cfg.show_gantt,
+                "show_calendar": cfg.show_calendar,
+                "show_weekends": cfg.show_weekends,
+                "show_dates": cfg.show_dates,
+            }
+        )
+
     async def post_note(request: Request) -> Response:
         note_id = request.path_params["note_id"]
         body = await request.body()
@@ -319,6 +353,7 @@ def build_app(todo_path: Path) -> Starlette:
         Route("/api/tasks/{hash}/done", post_done, methods=["POST"]),
         Route("/api/tasks/{hash}/description", post_description, methods=["POST"]),
         Route("/api/notes/{note_id}/content", post_note, methods=["POST"]),
+        Route("/api/config", post_config, methods=["POST"]),
         Mount("/static", app=StaticFiles(directory=str(STATIC_DIR)), name="static"),
     ]
 

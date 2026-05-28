@@ -11,12 +11,6 @@
     <div class="brand" id="brand">tsk</div>
     <div class="header-section" id="project-chips" aria-label="Project filters"></div>
     <div class="header-section">
-      <div class="view-toggle" role="tablist">
-        <button id="view-gantt" class="view-btn active" role="tab">Gantt</button>
-        <button id="view-calendar" class="view-btn" role="tab">Calendar</button>
-      </div>
-    </div>
-    <div class="header-section">
       <label class="toggle">
         <input type="checkbox" id="show-completed" checked>
         <span>Show completed</span>
@@ -24,6 +18,14 @@
       <label class="toggle">
         <input type="checkbox" id="show-dates" checked>
         <span>Dates</span>
+      </label>
+      <label class="toggle">
+        <input type="checkbox" id="show-gantt">
+        <span>Gantt</span>
+      </label>
+      <label class="toggle">
+        <input type="checkbox" id="show-calendar">
+        <span>Calendar</span>
       </label>
     </div>
     <div class="header-section">
@@ -36,10 +38,13 @@
 
   <main id="main">
     <section id="task-list" class="pane"></section>
-    <div id="splitter" role="separator" aria-orientation="vertical" tabindex="0"></div>
-    <section id="viz-pane" class="pane">
+    <div id="splitter-gantt" class="splitter" role="separator" aria-orientation="vertical" tabindex="0" hidden></div>
+    <section id="gantt-pane" class="pane" hidden>
       <div id="gantt-view" class="view"></div>
-      <div id="calendar-view" class="view" hidden></div>
+    </section>
+    <div id="splitter-calendar" class="splitter" role="separator" aria-orientation="vertical" tabindex="0" hidden></div>
+    <section id="calendar-pane" class="pane" hidden>
+      <div id="calendar-view" class="view"></div>
     </section>
   </main>
 

@@ -15,6 +15,9 @@
 - feat(UI): allow `Esc` to close task/note popup
 - fix: ensure blank line after markdown headings on write
 - feat(CLI): `tsk init` accepts `tsk config` flags
+- feat(UI): align horizontally tasks in task panel with gantt visualisation
+- feat(UI): make gantt/calendar panel toggle on/off and add tsk config --show-calendar/--no-show-calendar option
+- feat(CLI): allow default duration to be 0 - that means that there is not default dates
 
 ## 0.1.0 (2026-05-28)
 

@@ -32,6 +32,6 @@
 - [x] FEAT(944a9): use 'Esc' to close task/note popup
 - [x] FIX(d1f2f): When writing the TODO file, after any h (h1, h2, h3) there should be an empty line
 - [x] FEAT(095f3): the `tsk init` command should have the same options as `tsk config` so that the project is initiated already with the correct options. This could be implemented by running config after init that would change everything to default values.
-- [ ] FEAT(270df): Align horizontally tasks in task panel with gantt visualisation
-- [ ] FEAT(8a283): Make gantt/calendar panel toggle on/off and add tsk config --show-calendar/--no-show-calendar option
+- [x] FEAT(270df): Align horizontally tasks in task panel with gantt visualisation
+- [x] FEAT(8a283): Make gantt/calendar panel toggle on/off and add tsk config --show-calendar/--no-show-calendar option
 - [ ] REFACTOR(6d662): Replace httpx with niquests.

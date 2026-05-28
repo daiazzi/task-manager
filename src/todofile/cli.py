@@ -139,10 +139,22 @@ def serve(path: Path | None, no_browser: bool, host: str, port: int | None) -> N
     help="Show or hide the start/end columns in the UI by default.",
 )
 @click.option(
-    "--show-panel/--no-show-panel",
-    "show_panel",
+    "--show-gantt/--no-show-gantt",
+    "show_gantt",
     default=None,
-    help="Show or hide the right-side panel (gantt/calendar) by default.",
+    help="Show or hide the Gantt column by default.",
+)
+@click.option(
+    "--show-calendar/--no-show-calendar",
+    "show_calendar",
+    default=None,
+    help="Show or hide the Calendar column by default.",
+)
+@click.option(
+    "--show-weekends/--no-show-weekends",
+    "show_weekends",
+    default=None,
+    help="Include Sat/Sun in the Gantt day grid.",
 )
 @click.option(
     "--default-duration",
@@ -171,7 +183,9 @@ def init(
     light_mode: bool,
     tag_cols: tuple[str, ...],
     show_dates: bool | None,
-    show_panel: bool | None,
+    show_gantt: bool | None,
+    show_calendar: bool | None,
+    show_weekends: bool | None,
     default_duration: int | None,
     text_size: str | None,
     auto_refresh: bool | None,
@@ -230,7 +244,9 @@ def init(
         or light_mode
         or bool(parsed_colors)
         or show_dates is not None
-        or show_panel is not None
+        or show_gantt is not None
+        or show_calendar is not None
+        or show_weekends is not None
         or default_duration is not None
         or text_size is not None
         or auto_refresh is not None
@@ -243,8 +259,12 @@ def init(
             cfg.theme = "light"
         if show_dates is not None:
             cfg.show_dates = show_dates
-        if show_panel is not None:
-            cfg.show_panel = show_panel
+        if show_gantt is not None:
+            cfg.show_gantt = show_gantt
+        if show_calendar is not None:
+            cfg.show_calendar = show_calendar
+        if show_weekends is not None:
+            cfg.show_weekends = show_weekends
         if default_duration is not None:
             cfg.default_duration = default_duration
         if text_size is not None:
@@ -569,10 +589,22 @@ def task_remove(hash: str, path: Path | None) -> None:
     help="Show or hide the start/end columns in the UI by default.",
 )
 @click.option(
-    "--show-panel/--no-show-panel",
-    "show_panel",
+    "--show-gantt/--no-show-gantt",
+    "show_gantt",
     default=None,
-    help="Show or hide the right-side panel (gantt/calendar) by default.",
+    help="Show or hide the Gantt column by default.",
+)
+@click.option(
+    "--show-calendar/--no-show-calendar",
+    "show_calendar",
+    default=None,
+    help="Show or hide the Calendar column by default.",
+)
+@click.option(
+    "--show-weekends/--no-show-weekends",
+    "show_weekends",
+    default=None,
+    help="Include Sat/Sun in the Gantt day grid.",
 )
 @click.option(
     "--default-duration",
@@ -602,7 +634,9 @@ def config(
     light_mode: bool,
     tag_cols: tuple[str, ...],
     show_dates: bool | None,
-    show_panel: bool | None,
+    show_gantt: bool | None,
+    show_calendar: bool | None,
+    show_weekends: bool | None,
     default_duration: int | None,
     text_size: str | None,
     auto_refresh: bool | None,
@@ -650,7 +684,9 @@ def config(
         or light_mode
         or parsed_colors
         or show_dates is not None
-        or show_panel is not None
+        or show_gantt is not None
+        or show_calendar is not None
+        or show_weekends is not None
         or default_duration is not None
         or text_size is not None
         or auto_refresh is not None
@@ -673,9 +709,15 @@ def config(
     if show_dates is not None:
         cfg.show_dates = show_dates
         summary.append(f"show_dates = [bold]{str(show_dates).lower()}[/]")
-    if show_panel is not None:
-        cfg.show_panel = show_panel
-        summary.append(f"show_panel = [bold]{str(show_panel).lower()}[/]")
+    if show_gantt is not None:
+        cfg.show_gantt = show_gantt
+        summary.append(f"show_gantt = [bold]{str(show_gantt).lower()}[/]")
+    if show_calendar is not None:
+        cfg.show_calendar = show_calendar
+        summary.append(f"show_calendar = [bold]{str(show_calendar).lower()}[/]")
+    if show_weekends is not None:
+        cfg.show_weekends = show_weekends
+        summary.append(f"show_weekends = [bold]{str(show_weekends).lower()}[/]")
     if default_duration is not None:
         cfg.default_duration = default_duration
         summary.append(f"default_duration = [bold]{default_duration}[/] day(s)")

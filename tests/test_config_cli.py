@@ -135,36 +135,49 @@ def test_config_show_dates_on(init_todo: Path, monkeypatch):
     assert load_config(init_todo).show_dates is True
 
 
-# --- show_panel --------------------------------------------------------------
+# --- show_gantt / show_calendar / show_weekends -------------------------------
 
 
-def test_config_panel_off(init_todo: Path, monkeypatch):
+def test_config_show_gantt(init_todo: Path, monkeypatch):
     monkeypatch.chdir(init_todo.parent)
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "--no-panel"])
+    result = runner.invoke(cli, ["config", "--show-gantt"])
     assert result.exit_code == 0, result.output
-    assert load_config(init_todo).show_panel is False
+    assert load_config(init_todo).show_gantt is True
+
+    result = runner.invoke(cli, ["config", "--no-show-gantt"])
+    assert result.exit_code == 0, result.output
+    assert load_config(init_todo).show_gantt is False
 
 
-def test_config_panel_on(init_todo: Path, monkeypatch):
+def test_config_show_calendar(init_todo: Path, monkeypatch):
     monkeypatch.chdir(init_todo.parent)
-    cfg = load_config(init_todo)
-    cfg.show_panel = False
-    from todofile.store import save_config
-    save_config(init_todo, cfg)
-
     runner = CliRunner()
-    result = runner.invoke(cli, ["config", "--panel"])
+    result = runner.invoke(cli, ["config", "--show-calendar"])
     assert result.exit_code == 0, result.output
-    assert load_config(init_todo).show_panel is True
+    assert load_config(init_todo).show_calendar is True
 
 
-def test_init_no_panel(tmp_path: Path, monkeypatch):
+def test_config_show_weekends(init_todo: Path, monkeypatch):
+    monkeypatch.chdir(init_todo.parent)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["config", "--show-weekends"])
+    assert result.exit_code == 0, result.output
+    assert load_config(init_todo).show_weekends is True
+
+
+def test_init_panel_flags(tmp_path: Path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     runner = CliRunner()
-    result = runner.invoke(cli, ["init", "--no-panel"])
+    result = runner.invoke(
+        cli,
+        ["init", "--show-gantt", "--show-calendar", "--show-weekends"],
+    )
     assert result.exit_code == 0, result.output
-    assert load_config(tmp_path / "TODO.md").show_panel is False
+    cfg = load_config(tmp_path / "TODO.md")
+    assert cfg.show_gantt is True
+    assert cfg.show_calendar is True
+    assert cfg.show_weekends is True
 
 
 # --- text_size ---------------------------------------------------------------

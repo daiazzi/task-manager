@@ -2,6 +2,10 @@ port: null
 theme: dark
 text_size: medium
 show_dates: true
+show_gantt: false
+show_calendar: false
+show_weekends: false
+auto_refresh: true
 default_duration: 3
 colors:
   default: '#8c8c8c'

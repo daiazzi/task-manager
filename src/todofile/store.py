@@ -21,7 +21,9 @@ port: null
 theme: dark             # "dark" or "light"
 text_size: medium       # "small", "medium", or "big"
 show_dates: true        # default visibility of the start/end columns
-show_panel: true        # show the right-side panel (gantt/calendar)
+show_gantt: false       # show the Gantt column (UI switch persists here)
+show_calendar: false    # show the Calendar column (UI switch persists here)
+show_weekends: false    # include Sat/Sun in the Gantt day grid (no UI switch)
 auto_refresh: true      # refresh UI automatically on TODO.md edits
 
 # New tasks get start=today, end=today+(default_duration-1) days.
@@ -150,9 +152,15 @@ def load_config(todo_path: Path) -> Config:
     show_dates = raw.get("show_dates", True)
     if not isinstance(show_dates, bool):
         show_dates = True
-    show_panel = raw.get("show_panel", True)
-    if not isinstance(show_panel, bool):
-        show_panel = True
+    show_gantt = raw.get("show_gantt", False)
+    if not isinstance(show_gantt, bool):
+        show_gantt = False
+    show_calendar = raw.get("show_calendar", False)
+    if not isinstance(show_calendar, bool):
+        show_calendar = False
+    show_weekends = raw.get("show_weekends", False)
+    if not isinstance(show_weekends, bool):
+        show_weekends = False
     text_size = raw.get("text_size", "medium")
     if text_size not in ("small", "medium", "big"):
         text_size = "medium"
@@ -165,18 +173,24 @@ def load_config(todo_path: Path) -> Config:
         "theme",
         "default_duration",
         "show_dates",
-        "show_panel",
+        "show_gantt",
+        "show_calendar",
+        "show_weekends",
         "text_size",
         "auto_refresh",
     }
-    extra = {k: v for k, v in raw.items() if k not in known}
+    # Legacy keys that have been removed; dropped silently.
+    legacy = {"show_panel"}
+    extra = {k: v for k, v in raw.items() if k not in known and k not in legacy}
     return Config(
         port=port,
         colors=colors,
         theme=theme,
         default_duration=duration,
         show_dates=show_dates,
-        show_panel=show_panel,
+        show_gantt=show_gantt,
+        show_calendar=show_calendar,
+        show_weekends=show_weekends,
         text_size=text_size,
         auto_refresh=auto_refresh,
         extra=extra,
@@ -190,7 +204,9 @@ def save_config(todo_path: Path, cfg: Config) -> None:
         "theme": cfg.theme,
         "text_size": cfg.text_size,
         "show_dates": cfg.show_dates,
-        "show_panel": cfg.show_panel,
+        "show_gantt": cfg.show_gantt,
+        "show_calendar": cfg.show_calendar,
+        "show_weekends": cfg.show_weekends,
         "auto_refresh": cfg.auto_refresh,
         "default_duration": cfg.default_duration,
         "colors": dict(cfg.colors),

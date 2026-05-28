@@ -14,6 +14,7 @@
   --row-h: 30px;
   --date-col-w: 110px;
   --left-pane-w: 480px;
+  --gantt-pane-w: 480px;
   --text-base: 13px;
 }
 
@@ -146,19 +147,39 @@ button:disabled { opacity: 0.5; cursor: progress; }
 
 main {
   flex: 1;
-  display: grid;
-  grid-template-columns: var(--left-pane-w) 6px 1fr;
+  display: flex;
+  flex-direction: row;
   min-height: 0;
 }
 
-#splitter {
+#task-list {
+  width: var(--left-pane-w);
+  flex: 0 0 auto;
+  border-right: 1px solid var(--border);
+}
+
+#gantt-pane {
+  width: var(--gantt-pane-w);
+  flex: 0 0 auto;
+  border-right: 1px solid var(--border);
+}
+
+/* When calendar is hidden, the gantt pane should fill the remaining space. */
+#calendar-pane[hidden] ~ * { display: none; }
+main:has(#calendar-pane[hidden]) #gantt-pane { flex: 1 1 auto; }
+main:has(#gantt-pane[hidden]) #calendar-pane { flex: 1 1 auto; }
+#calendar-pane:not([hidden]) { flex: 1 1 auto; }
+
+.splitter {
   background: var(--border);
   cursor: col-resize;
   position: relative;
   transition: background 80ms;
+  flex: 0 0 6px;
+  width: 6px;
 }
 
-#splitter::after {
+.splitter::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -166,16 +187,15 @@ main {
   right: -3px;
 }
 
-#splitter:hover, #splitter.dragging {
+.splitter:hover, .splitter.dragging {
   background: var(--accent);
 }
 
 .pane {
   overflow: auto;
   background: var(--bg);
+  min-width: 0;
 }
-
-#task-list { border-right: 1px solid var(--border); }
 
 .project-section {
   border-bottom: 1px solid var(--border);
@@ -474,63 +494,80 @@ main {
 }
 
 .gantt {
-  display: grid;
-  grid-template-rows: 28px auto;
-  min-width: 600px;
   font-size: 11px;
 }
 
 .gantt-header {
-  display: flex;
   position: sticky;
   top: 0;
   background: var(--bg-elev);
   border-bottom: 1px solid var(--border);
-  height: 28px;
   z-index: 2;
 }
 
-.gantt-day-label {
+.gantt-header-row {
+  display: flex;
+  height: 18px;
+}
+
+.gantt-header-dates { font-weight: 600; color: var(--text); }
+.gantt-header-days { color: var(--text-dim); }
+
+.gantt-day-cell {
   flex-shrink: 0;
   text-align: center;
-  padding-top: 6px;
-  color: var(--text-dim);
+  line-height: 18px;
   font-size: 10px;
   border-right: 1px solid var(--border);
 }
 
-.gantt-day-label.weekend { background: rgba(0,0,0,0.15); }
-.gantt-day-label.today { color: var(--accent); font-weight: 600; }
+.gantt-day-cell.today { color: var(--accent); font-weight: 600; }
 
 .gantt-body { position: relative; }
 
+.gantt-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.gantt-grid-col {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-right: 1px solid var(--border);
+}
+
+.gantt-grid-col.today {
+  background: rgba(122, 162, 247, 0.06);
+}
+
 .gantt-row {
   position: relative;
-  height: var(--row-h);
   border-bottom: 1px solid var(--border);
+  /* height is set inline by syncGanttRowHeights */
+}
+
+.gantt-row-project-header,
+.gantt-row-project-notes {
+  background: transparent;
 }
 
 .gantt-bar {
   position: absolute;
-  top: 5px;
-  height: calc(var(--row-h) - 10px);
-  background: var(--accent-soft);
+  top: 50%;
+  transform: translateY(-50%);
+  height: 14px;
+  background: var(--accent);
   border: 1px solid var(--accent);
   border-radius: 3px;
-  padding: 0 5px;
-  font-size: 10px;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  cursor: default;
+  cursor: pointer;
 }
 
 .gantt-bar.done {
   background: var(--bg-elev-2);
   border-color: var(--done);
-  color: var(--done);
-  text-decoration: line-through;
+  opacity: 0.6;
 }
 
 .gantt-today-line {
@@ -540,6 +577,7 @@ main {
   width: 1px;
   background: var(--accent);
   opacity: 0.5;
+  pointer-events: none;
 }
 
 /* Calendar */
