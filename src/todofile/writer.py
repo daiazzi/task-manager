@@ -317,6 +317,38 @@ def remove_note(text: str, note_id: str) -> str:
     return eol.join(lines)
 
 
+def set_note_content(text: str, note_id: str, content: str) -> str:
+    """Replace the content of a note block (including continuation lines)."""
+    if not re.fullmatch(r"x[0-9a-fA-F]{5}", note_id):
+        raise ValueError("invalid note id")
+    lf_text, eol = _normalise(text)
+    lines = lf_text.split("\n")
+
+    start, end = _find_note_span(lines, note_id.lower())
+    if start is None:
+        raise KeyError(note_id)
+
+    m = re.match(
+        r"^(?P<indent>[ \t]*)(?P<marker>[-*])\s+(?!\[(?: |x|X)\])(?P<body>.*)$",
+        lines[start],
+    )
+    assert m is not None
+    indent = m.group("indent")
+    marker = m.group("marker")
+
+    body_lines = (content or "").replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    first = (body_lines[0] if body_lines else "").rstrip()
+    rest = [ln.rstrip() for ln in body_lines[1:]]
+    while rest and not rest[-1].strip():
+        rest.pop()
+
+    new_first = f"{indent}{marker} ({note_id.lower()}): {first}".rstrip()
+    cont_indent = indent + "  "
+    new_rest = [cont_indent + ln if ln != "" else "" for ln in rest]
+    lines[start:end] = [new_first, *new_rest]
+    return eol.join(lines)
+
+
 # --- helpers ----------------------------------------------------------------
 
 

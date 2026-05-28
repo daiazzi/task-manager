@@ -9,6 +9,7 @@
 - feat: add annotate command to add a note.
 - feat: add hash to notes so that they can be removed with the `tsk remove` command.
 - feat: Make the pop up window's content (task) editable.
+- feat: Make notes clickable with popup window like tasks
 
 ## 0.1.0 (2026-05-28)
 

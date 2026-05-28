@@ -6,6 +6,7 @@ from todofile.writer import (
     remove_note,
     remove_task,
     set_description,
+    set_note_content,
     stamp_hashes,
     stamp_note_hashes,
 )
@@ -240,3 +241,24 @@ def test_set_description_empty_allowed():
     new_text = set_description(text, "aaaaa", "")
     doc = parse_text(new_text)
     assert doc.tasks_by_hash["aaaaa"].description == ""
+
+
+def test_set_note_content_replaces_note_block_only():
+    text = (
+        "## p\n"
+        "### Notes\n"
+        "- (xabcde): first\n"
+        "  cont\n"
+        "- (x99999): second\n"
+        "\n"
+        "- [ ] (aaaaa): task\n"
+    )
+    new_text = set_note_content(text, "xabcde", "updated\nmore\n")
+    assert "(xabcde): updated" in new_text
+    assert "more" in new_text
+    # Old continuation removed
+    assert "cont" not in new_text
+    # Other note preserved
+    assert "(x99999): second" in new_text
+    # Task preserved
+    assert "(aaaaa): task" in new_text

@@ -192,6 +192,19 @@ async function postDescription(hash, description) {
   return r.json();
 }
 
+async function postNoteContent(noteId, content) {
+  const r = await fetch(`/api/notes/${noteId}/content`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content }),
+  });
+  if (!r.ok) {
+    const data = await r.json().catch(() => ({ error: 'update failed' }));
+    throw new Error(data.error || 'update failed');
+  }
+  return r.json();
+}
+
 async function postDates(hash, start, end) {
   const r = await fetch(`/api/tasks/${hash}/dates`, {
     method: 'POST',
@@ -393,6 +406,16 @@ function renderProjectNotes(notes, projectName) {
     const item = document.createElement('div');
     item.className = 'project-note markdown-body';
     item.innerHTML = renderMarkdown(note.content || '');
+    item.tabIndex = 0;
+    item.setAttribute('role', 'button');
+    item.setAttribute('aria-label', 'Open note');
+    item.addEventListener('click', () => openNoteModal(note, projectName));
+    item.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openNoteModal(note, projectName);
+      }
+    });
     body.appendChild(item);
   }
   wrap.appendChild(body);
@@ -828,6 +851,123 @@ function closeModal() {
   const host = $('#modal-host');
   host.hidden = true;
   host.innerHTML = '';
+}
+
+function openNoteModal(note, projectName) {
+  const host = $('#modal-host');
+  host.hidden = false;
+  host.innerHTML = '';
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.addEventListener('click', (e) => e.stopPropagation());
+
+  const header = document.createElement('div');
+  header.className = 'modal-header';
+
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'modal-close';
+  closeBtn.textContent = '✕';
+  closeBtn.title = 'Close (Esc)';
+  closeBtn.addEventListener('click', closeModal);
+  header.appendChild(closeBtn);
+  modal.appendChild(header);
+
+  const meta = document.createElement('div');
+  meta.className = 'modal-meta';
+  meta.innerHTML =
+    `<span><b>project</b> ${escapeHtml(projectName)}</span>` +
+    `<span><b>note</b> ${escapeHtml(note.hash || '')}</span>`;
+  modal.appendChild(meta);
+
+  const body = document.createElement('div');
+  body.className = 'modal-body';
+  body.innerHTML = renderMarkdown(note.content || '');
+  modal.appendChild(body);
+
+  const actions = document.createElement('div');
+  actions.className = 'modal-actions';
+  const editBtn = document.createElement('button');
+  editBtn.type = 'button';
+  editBtn.className = 'modal-edit';
+  editBtn.textContent = 'Edit';
+  actions.appendChild(editBtn);
+  modal.appendChild(actions);
+
+  let editing = false;
+  let textarea = null;
+  let saveBtn = null;
+  let cancelBtn = null;
+
+  const renderView = (n) => {
+    body.innerHTML = renderMarkdown(n.content || '');
+  };
+
+  const enterEdit = () => {
+    if (editing) return;
+    editing = true;
+    actions.innerHTML = '';
+    textarea = document.createElement('textarea');
+    textarea.className = 'modal-editor';
+    textarea.value = note.content || '';
+    body.innerHTML = '';
+    body.appendChild(textarea);
+    textarea.focus();
+
+    cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'modal-cancel';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.addEventListener('click', () => {
+      editing = false;
+      body.innerHTML = '';
+      renderView(note);
+      actions.innerHTML = '';
+      actions.appendChild(editBtn);
+    });
+
+    saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.className = 'modal-save';
+    saveBtn.textContent = 'Save';
+    saveBtn.addEventListener('click', async () => {
+      if (saveBtn.dataset.busy === '1') return;
+      if (!note.hash) {
+        toast('Note has no id yet. Refresh and try again.', 'error');
+        return;
+      }
+      saveBtn.dataset.busy = '1';
+      saveBtn.disabled = true;
+      cancelBtn.disabled = true;
+      try {
+        const data = await postNoteContent(note.hash, textarea.value || '');
+        applyData(data);
+        render();
+        const proj = state.projects.find((p) => p.name === projectName);
+        const updated = proj?.notes?.find((n) => n.hash === note.hash);
+        if (updated) note = updated;
+        editing = false;
+        toast('Saved', 'ok');
+        body.innerHTML = '';
+        renderView(note);
+        actions.innerHTML = '';
+        actions.appendChild(editBtn);
+      } catch (e) {
+        toast(e.message, 'error');
+      } finally {
+        delete saveBtn.dataset.busy;
+        saveBtn.disabled = false;
+        cancelBtn.disabled = false;
+      }
+    });
+
+    actions.appendChild(cancelBtn);
+    actions.appendChild(saveBtn);
+  };
+
+  editBtn.addEventListener('click', enterEdit);
+
+  host.appendChild(modal);
+  host.addEventListener('click', closeModal, { once: true });
 }
 
 // ---------- markdown renderer (minimal subset) ----------

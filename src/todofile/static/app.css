@@ -256,6 +256,19 @@ main {
   color: var(--text);
 }
 
+.project-note[role="button"] {
+  cursor: pointer;
+}
+
+.project-note[role="button"]:hover {
+  border-color: var(--accent);
+}
+
+.project-note[role="button"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .project-note.markdown-body p:first-child,
 .project-note.markdown-body h1:first-child,
 .project-note.markdown-body h2:first-child,

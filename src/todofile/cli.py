@@ -193,7 +193,6 @@ def down(path: Path | None) -> None:
     else:
         _console.print(f"tsk: stopped daemon (pid {pid})")
 
-
 @cli.command()
 @click.argument("path", required=False, type=click.Path(dir_okay=False, path_type=Path))
 def status(path: Path | None) -> None:

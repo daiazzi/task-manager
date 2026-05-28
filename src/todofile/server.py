@@ -285,6 +285,29 @@ def build_app(todo_path: Path) -> Starlette:
         doc = _reload(todo_path)
         return JSONResponse(_serialise(doc, todo_path))
 
+    async def post_note(request: Request) -> Response:
+        note_id = request.path_params["note_id"]
+        body = await request.body()
+        try:
+            data = json.loads(body) if body else {}
+        except json.JSONDecodeError:
+            return JSONResponse({"error": "Invalid JSON body."}, status_code=400)
+        if "content" not in data or not isinstance(data["content"], str):
+            return JSONResponse(
+                {"error": "Expected JSON body {\"content\": string}."}, status_code=400
+            )
+
+        text = todo_path.read_text(encoding="utf-8")
+        try:
+            new_text = writer_mod.set_note_content(text, note_id, data["content"])
+        except ValueError as e:
+            return JSONResponse({"error": str(e)}, status_code=400)
+        except KeyError:
+            return JSONResponse({"error": f"No note with id '{note_id}'."}, status_code=404)
+        todo_path.write_text(new_text, encoding="utf-8")
+        doc = _reload(todo_path)
+        return JSONResponse(_serialise(doc, todo_path))
+
     routes = [
         Route("/", index),
         Route("/api/tasks", get_tasks),
@@ -294,6 +317,7 @@ def build_app(todo_path: Path) -> Starlette:
         Route("/api/tasks/{hash}/dates", post_dates, methods=["POST"]),
         Route("/api/tasks/{hash}/done", post_done, methods=["POST"]),
         Route("/api/tasks/{hash}/description", post_description, methods=["POST"]),
+        Route("/api/notes/{note_id}/content", post_note, methods=["POST"]),
         Mount("/static", app=StaticFiles(directory=str(STATIC_DIR)), name="static"),
     ]
 
