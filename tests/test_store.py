@@ -166,6 +166,41 @@ def test_load_config_invalid_theme_falls_back(tmp_path: Path):
     assert load_config(p).theme == "dark"
 
 
+def test_load_config_show_panel_default(tmp_path: Path):
+    p = tmp_path / "TODO.md"
+    p.write_text("# x\n")
+    ensure_sidecar(p)
+    assert load_config(p).show_panel is True
+
+
+def test_load_config_show_panel_false(tmp_path: Path):
+    p = tmp_path / "TODO.md"
+    p.write_text("# x\n")
+    ensure_sidecar(p)
+    (sidecar_dir(p) / "config.yaml").write_text("show_panel: false\n")
+    assert load_config(p).show_panel is False
+
+
+def test_load_config_show_panel_invalid_falls_back(tmp_path: Path):
+    p = tmp_path / "TODO.md"
+    p.write_text("# x\n")
+    ensure_sidecar(p)
+    (sidecar_dir(p) / "config.yaml").write_text("show_panel: nope\n")
+    assert load_config(p).show_panel is True
+
+
+def test_save_config_roundtrips_show_panel(tmp_path: Path):
+    from todofile.store import save_config
+
+    p = tmp_path / "TODO.md"
+    p.write_text("# x\n")
+    ensure_sidecar(p)
+    cfg = load_config(p)
+    cfg.show_panel = False
+    save_config(p, cfg)
+    assert load_config(p).show_panel is False
+
+
 def test_ensure_sidecar_copies_agent_md(tmp_path: Path):
     p = tmp_path / "TODO.md"
     p.write_text("# x\n")

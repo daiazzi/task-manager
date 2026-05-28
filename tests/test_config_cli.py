@@ -135,6 +135,38 @@ def test_config_show_dates_on(init_todo: Path, monkeypatch):
     assert load_config(init_todo).show_dates is True
 
 
+# --- show_panel --------------------------------------------------------------
+
+
+def test_config_panel_off(init_todo: Path, monkeypatch):
+    monkeypatch.chdir(init_todo.parent)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["config", "--no-panel"])
+    assert result.exit_code == 0, result.output
+    assert load_config(init_todo).show_panel is False
+
+
+def test_config_panel_on(init_todo: Path, monkeypatch):
+    monkeypatch.chdir(init_todo.parent)
+    cfg = load_config(init_todo)
+    cfg.show_panel = False
+    from todofile.store import save_config
+    save_config(init_todo, cfg)
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["config", "--panel"])
+    assert result.exit_code == 0, result.output
+    assert load_config(init_todo).show_panel is True
+
+
+def test_init_no_panel(tmp_path: Path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["init", "--no-panel"])
+    assert result.exit_code == 0, result.output
+    assert load_config(tmp_path / "TODO.md").show_panel is False
+
+
 # --- text_size ---------------------------------------------------------------
 
 
