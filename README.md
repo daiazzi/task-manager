@@ -114,7 +114,7 @@ All flags can be combined in one call. Resolves the TODO file from cwd.
 Examples:
 ```bash
 tsk config --dark-mode
-tsk config --tag-col DEV:green --tag-col DATA:yellow
+tsk config --tag-col FEAT:blue --tag-col FIX:red
 tsk config --no-show-dates --text-size big --default-duration 5
 ```
 
@@ -142,9 +142,9 @@ For `/path/to/myTODO.md` the manager uses:
 port: null               # int (1024-65535) or null for auto
 theme: dark              # "dark" or "light"
 colors:
-  default: "#7aa2f7"
-  api: "#9ece6a"
-  db:  "#f7768e"
+  default: "#8c8c8c"
+  FEAT: "#0080ff"
+  FIX:  "#ff0000"
 ```
 
 Add `*/.*.dir/` to your `.gitignore` if you don't want to commit the

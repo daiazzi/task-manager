@@ -15,9 +15,9 @@
   Notes are not removed via cli because there is no identifier for them.
   - [x] REFACTOR(271a1): add hash to notes too so that they can be removed with the `tsk remove` command.
 - [x] FEAT(2cb04): Make the pop up window's content (task) editable.
-- [ ] FEAT(33e74): Make notes clickable with popup window like tasks
+- [x] FEAT(33e74): Make notes clickable with popup window like tasks
   Only the description of the task and the note should be editable.
-- [ ] REFACTOR(09067): Default tags should be DOCS, ENV, REFACTOR, FEAT, FIX, PERF, TESTS.
+- [x] REFACTOR(09067): Default tags should be DOCS, ENV, REFACTOR, FEAT, FIX, PERF, TESTS.
   Should also start with a colour palette when initializing the project.
   default: "#8c8c8c"
   FIX: "#ff0000"
@@ -29,11 +29,9 @@
   ENV: "#999900"
   MISC: "#339999"
 - [ ] FEAT(a1b6a): Add `tsk restart [path]` command (performs down and up).
+- [ ] FEAT(944a9): use 'Esc' to close task/note popup
 - [ ] FEAT(270df): Align horizontally tasks in task panel with gantt visualisation
-- [ ] FIX(d1f2f): When automatically editing the TODO, after any h (h1, h2, h3) there should be an empty line
+- [ ] FIX(d1f2f): When writing the TODO file, after any h (h1, h2, h3) there should be an empty line
 - [ ] FEAT(095f3): the `tsk init` command should have the same options as `tsk config` so that the project is initiated already with the correct options
 - [ ] FEAT(8a283): Make gantt/calendar panel toggle on/off and add tsk config --show-calendar/--no-show-calendar option
-- [ ] REFACTOR(6d662): Replace httpx with niquests
-
-### Notes
-- (xd51ca): test
+- [ ] REFACTOR(6d662): Replace httpx with niquests.

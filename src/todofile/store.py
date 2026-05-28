@@ -28,11 +28,15 @@ default_duration: 1
 
 # Tag colours. The "default" entry colours tags without a specific mapping.
 colors:
-  default: "#7aa2f7"
-  DEV: "#9ece6a"
-  DATA: "#e0af68"
-  COMMUNICATION: "#bb9af7"
-  MISC: "#565f89"
+  default: "#8c8c8c"
+  FIX: "#ff0000"
+  FEAT: "#0080ff"
+  REFACTOR: "#ffbf00"
+  PERF: "#ff33ff"
+  TESTS: "#269900"
+  DOCS: "#663300"
+  ENV: "#999900"
+  MISC: "#339999"
 """
 
 
@@ -107,7 +111,17 @@ def save_tasks_yaml(todo_path: Path, data: dict[str, TaskMetadata]) -> None:
     _atomic_write(tasks_yaml_path(todo_path), body)
 
 
-_DEFAULT_COLORS = {"default": "#7aa2f7"}
+_DEFAULT_COLORS = {
+    "default": "#8c8c8c",
+    "FIX": "#ff0000",
+    "FEAT": "#0080ff",
+    "REFACTOR": "#ffbf00",
+    "PERF": "#ff33ff",
+    "TESTS": "#269900",
+    "DOCS": "#663300",
+    "ENV": "#999900",
+    "MISC": "#339999",
+}
 
 
 def load_config(todo_path: Path) -> Config:
