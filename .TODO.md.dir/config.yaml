@@ -1,0 +1,11 @@
+port: null
+theme: light
+text_size: big
+show_dates: false
+default_duration: 1
+colors:
+  default: '#7aa2f7'
+  DEV: '#9ece6a'
+  DATA: '#e0af68'
+  COMMUNICATION: '#bb9af7'
+  MISC: '#565f89'
