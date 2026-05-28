@@ -21,6 +21,7 @@ port: null
 theme: dark             # "dark" or "light"
 text_size: medium       # "small", "medium", or "big"
 show_dates: true        # default visibility of the start/end columns
+auto_refresh: true      # refresh UI automatically on TODO.md edits
 
 # New tasks get start=today, end=today+(default_duration-1) days.
 default_duration: 1
@@ -137,7 +138,18 @@ def load_config(todo_path: Path) -> Config:
     text_size = raw.get("text_size", "medium")
     if text_size not in ("small", "medium", "big"):
         text_size = "medium"
-    known = {"port", "colors", "theme", "default_duration", "show_dates", "text_size"}
+    auto_refresh = raw.get("auto_refresh", True)
+    if not isinstance(auto_refresh, bool):
+        auto_refresh = True
+    known = {
+        "port",
+        "colors",
+        "theme",
+        "default_duration",
+        "show_dates",
+        "text_size",
+        "auto_refresh",
+    }
     extra = {k: v for k, v in raw.items() if k not in known}
     return Config(
         port=port,
@@ -146,6 +158,7 @@ def load_config(todo_path: Path) -> Config:
         default_duration=duration,
         show_dates=show_dates,
         text_size=text_size,
+        auto_refresh=auto_refresh,
         extra=extra,
     )
 
@@ -157,6 +170,7 @@ def save_config(todo_path: Path, cfg: Config) -> None:
         "theme": cfg.theme,
         "text_size": cfg.text_size,
         "show_dates": cfg.show_dates,
+        "auto_refresh": cfg.auto_refresh,
         "default_duration": cfg.default_duration,
         "colors": dict(cfg.colors),
     }

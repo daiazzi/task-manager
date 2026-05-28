@@ -7,12 +7,14 @@ import webbrowser
 from datetime import date
 from pathlib import Path
 
+import anyio
 import uvicorn
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import FileResponse, JSONResponse, Response
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
+from starlette.responses import StreamingResponse
 
 from . import parser as parser_mod
 from . import store
@@ -47,6 +49,7 @@ def _serialise(doc: ParsedDocument, todo_path: Path) -> dict:
         "theme": cfg.theme,
         "text_size": cfg.text_size,
         "show_dates": cfg.show_dates,
+        "auto_refresh": cfg.auto_refresh,
         "projects": [
             {
                 "name": p.name,
@@ -88,6 +91,37 @@ def build_app(todo_path: Path) -> Starlette:
         except OSError as e:
             return JSONResponse({"error": f"TODO.md not readable: {e}"}, status_code=500)
         return JSONResponse(_serialise(doc, todo_path))
+
+    async def get_events(request: Request) -> Response:
+        async def event_stream():
+            last_mtime_ns: int | None = None
+            last_sent_disabled = False
+            while True:
+                try:
+                    cfg = store.load_config(todo_path)
+                    if not cfg.auto_refresh:
+                        if not last_sent_disabled:
+                            last_sent_disabled = True
+                            yield "event: disabled\ndata: 1\n\n"
+                        await anyio.sleep(1.0)
+                        continue
+                    last_sent_disabled = False
+
+                    st = todo_path.stat()
+                    mtime_ns = getattr(st, "st_mtime_ns", int(st.st_mtime * 1e9))
+                    if last_mtime_ns is None:
+                        last_mtime_ns = mtime_ns
+                        yield "event: ready\ndata: 1\n\n"
+                    elif mtime_ns != last_mtime_ns:
+                        last_mtime_ns = mtime_ns
+                        yield f"event: changed\ndata: {mtime_ns}\n\n"
+                    await anyio.sleep(0.5)
+                except Exception:
+                    # Keep the connection alive even if the file is temporarily unreadable.
+                    yield "event: error\ndata: 1\n\n"
+                    await anyio.sleep(1.0)
+
+        return StreamingResponse(event_stream(), media_type="text/event-stream")
 
     async def post_dates(request: Request) -> Response:
         hash_ = request.path_params["hash"]
@@ -226,6 +260,7 @@ def build_app(todo_path: Path) -> Starlette:
         Route("/", index),
         Route("/api/tasks", get_tasks),
         Route("/api/refresh", post_refresh, methods=["POST"]),
+        Route("/api/events", get_events),
         Route("/api/tasks/reorder", post_reorder, methods=["POST"]),
         Route("/api/tasks/{hash}/dates", post_dates, methods=["POST"]),
         Route("/api/tasks/{hash}/done", post_done, methods=["POST"]),

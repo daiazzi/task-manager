@@ -328,6 +328,12 @@ def task_remove(hash: str, path: Path | None) -> None:
     default=None,
     help="UI text size.",
 )
+@click.option(
+    "--auto-refresh/--no-auto-refresh",
+    "auto_refresh",
+    default=None,
+    help="Automatically refresh the UI when the TODO file changes.",
+)
 @click.option("--list-colors", "list_colors", is_flag=True, help="Print the colour palette and exit.")
 @click.pass_context
 def config(
@@ -338,6 +344,7 @@ def config(
     show_dates: bool | None,
     default_duration: int | None,
     text_size: str | None,
+    auto_refresh: bool | None,
     list_colors: bool,
 ) -> None:
     """Inspect or modify the per-project config.yaml.
@@ -384,6 +391,7 @@ def config(
         or show_dates is not None
         or default_duration is not None
         or text_size is not None
+        or auto_refresh is not None
     )
     if not any_change:
         click.echo(ctx.get_help())
@@ -409,6 +417,9 @@ def config(
     if text_size is not None:
         cfg.text_size = text_size
         summary.append(f"text_size = [bold]{text_size}[/]")
+    if auto_refresh is not None:
+        cfg.auto_refresh = auto_refresh
+        summary.append(f"auto_refresh = [bold]{str(auto_refresh).lower()}[/]")
     for tag_name, hex_value in parsed_colors.items():
         cfg.colors[tag_name] = hex_value
         summary.append(

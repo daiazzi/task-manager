@@ -2,14 +2,15 @@ port: 53051
 theme: light
 text_size: big
 show_dates: false
+auto_refresh: true
 default_duration: 1
 colors:
-  default: "#8c8c8c"
-  FIX: "#ff0000"
-  FEAT: "#0080ff"
-  REFACTOR: "#ffbf00"
-  PERF: "#ff33ff"
-  TESTS: "#269900"
-  DOCS: "#663300"
-  ENV: "#999900"
-  MISC: "#339999"
+  default: '#8c8c8c'
+  FIX: '#ff0000'
+  FEAT: '#0080ff'
+  REFACTOR: '#ffbf00'
+  PERF: '#ff33ff'
+  TESTS: '#269900'
+  DOCS: '#663300'
+  ENV: '#999900'
+  MISC: '#339999'

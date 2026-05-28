@@ -1,10 +1,11 @@
 # TODO
 
+
 ## Tasks
 
 - [x] REFACTOR(18c87): Rename package to `todofile`.
   The CLI entry point stays `tsk`.
-- [ ] FEAT(1cddf): make the refresh automatic after any edit to the TODO.md file.
+- [x] FEAT(1cddf): make the refresh automatic after any edit to the TODO.md file.
 - [ ] REFACTOR(a7e8c): Make add and remove first class commands.
   Tasks are added with the `tsk add` command. And removed with the `tsk remove` command.
 - [ ] FEAT(1a194): Command 'annotate' to add a note.
@@ -34,3 +35,8 @@
 - [ ] FEAT(095f3): the `tsk init` command should have the same options as `tsk config` so that the project is initiated already with the correct options
 - [ ] FEAT(8a283): Make gantt/calendar panel toggle on/off and add tsk config --show-calendar/--no-show-calendar option
 - [ ] REFACTOR(6d662): Replace httpx with niquests
+
+### Notes
+
+- Test
+- Test 2

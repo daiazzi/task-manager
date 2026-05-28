@@ -10,6 +10,7 @@ const state = {
   view: 'gantt',
   showCompleted: true,
   showDates: true,
+  autoRefresh: true,
   calendarMonth: null,
   theme: 'dark',
   textSize: 'medium',
@@ -197,6 +198,7 @@ function applyData(data) {
   state.colors = data.colors || {};
   state.projects = data.projects || [];
   state.warnings = data.warnings || [];
+  state.autoRefresh = typeof data.auto_refresh === 'boolean' ? data.auto_refresh : true;
   // Initialise active projects on first load only
   if (state.activeProjects.size === 0) {
     for (const p of state.projects) state.activeProjects.add(p.name);
@@ -213,6 +215,43 @@ function applyData(data) {
     }
     state._initialisedProjects = true;
   }
+}
+
+// ---------- auto refresh (server events) ----------
+
+let autoRefreshSource = null;
+
+function ensureAutoRefresh() {
+  if (!state.autoRefresh) {
+    if (autoRefreshSource) {
+      try { autoRefreshSource.close(); } catch (e) {}
+      autoRefreshSource = null;
+    }
+    return;
+  }
+  if (autoRefreshSource) return;
+  if (!('EventSource' in window)) return;
+
+  autoRefreshSource = new EventSource('/api/events');
+  autoRefreshSource.addEventListener('changed', async () => {
+    try {
+      const data = await fetchTasks();
+      applyData(data);
+      render();
+      ensureAutoRefresh();
+    } catch (e) {
+      // ignore transient errors; EventSource will retry
+    }
+  });
+  autoRefreshSource.addEventListener('disabled', () => {
+    if (autoRefreshSource) {
+      try { autoRefreshSource.close(); } catch (e) {}
+      autoRefreshSource = null;
+    }
+  });
+  autoRefreshSource.addEventListener('error', () => {
+    // allow browser retry; no-op
+  });
 }
 
 // ---------- rendering ----------
@@ -1031,6 +1070,7 @@ async function init() {
     initSplitter();
     applyData(data);
     render();
+    ensureAutoRefresh();
   } catch (e) {
     toast(e.message, 'error');
   }

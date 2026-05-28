@@ -153,6 +153,31 @@ def test_config_text_size_invalid(init_todo: Path, monkeypatch):
     assert result.exit_code != 0
 
 
+# --- auto_refresh -------------------------------------------------------------
+
+
+def test_config_auto_refresh_off(init_todo: Path, monkeypatch):
+    monkeypatch.chdir(init_todo.parent)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["config", "--no-auto-refresh"])
+    assert result.exit_code == 0, result.output
+    assert load_config(init_todo).auto_refresh is False
+
+
+def test_config_auto_refresh_on(init_todo: Path, monkeypatch):
+    monkeypatch.chdir(init_todo.parent)
+    # Flip to false first, then back to true
+    cfg = load_config(init_todo)
+    cfg.auto_refresh = False
+    from todofile.store import save_config
+    save_config(init_todo, cfg)
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["config", "--auto-refresh"])
+    assert result.exit_code == 0, result.output
+    assert load_config(init_todo).auto_refresh is True
+
+
 # --- combined ----------------------------------------------------------------
 
 

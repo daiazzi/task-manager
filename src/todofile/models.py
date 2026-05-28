@@ -68,4 +68,5 @@ class Config:
     default_duration: int = 1
     show_dates: bool = True
     text_size: str = "medium"
+    auto_refresh: bool = True
     extra: dict = field(default_factory=dict)

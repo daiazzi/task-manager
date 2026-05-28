@@ -104,3 +104,11 @@ def test_default_duration_persists_in_yaml(tmp_path: Path):
 
     cfg2 = load_config(p)
     assert cfg2.default_duration == 14
+
+
+def test_auto_refresh_defaults_on(tmp_path: Path):
+    p = tmp_path / "TODO.md"
+    p.write_text("# t\n")
+    ensure_sidecar(p)
+    cfg = load_config(p)
+    assert cfg.auto_refresh is True

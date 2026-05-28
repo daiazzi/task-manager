@@ -88,3 +88,4 @@ def test_api_includes_title_and_colors(tmp_path: Path):
     assert data["title"] == "My Project"
     assert "default" in data["colors"]
     assert data["theme"] in ("dark", "light")
+    assert isinstance(data.get("auto_refresh"), bool)
