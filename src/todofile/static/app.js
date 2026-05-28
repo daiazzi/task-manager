@@ -1290,7 +1290,10 @@ async function init() {
     savePrefs();
   });
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !$('#modal-host').hidden) closeModal();
+    if ((e.key === 'Escape' || e.key === 'Esc') && !$('#modal-host').hidden) {
+      e.preventDefault();
+      closeModal();
+    }
   });
   $('#theme-btn').addEventListener('click', () => {
     state.theme = state.theme === 'dark' ? 'light' : 'dark';
