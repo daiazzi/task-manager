@@ -10,7 +10,7 @@ CLI, the parser/writer, the store, and the web UI.
 
 | Concern | Library | Why |
 |---|---|---|
-| CLI framework | `rich-click` | Already pinned in `pyproject.toml`. Click's command-group model fits `task add` / `task remove` / `help format` cleanly, rich-click renders the `--help` nicely. |
+| CLI framework | `rich-click` | Already pinned in `pyproject.toml`. Click's command-group model fits `add` / `remove` / `help format` cleanly, rich-click renders the `--help` nicely. |
 | Web framework | `starlette` | We need ~4 endpoints + static files. Starlette is the minimal ASGI framework. FastAPI's Pydantic validation is overkill at this scale; we'll do our own validation in ~10 lines. |
 | ASGI server | `uvicorn` | Already pinned (currently in dev — will be promoted to main). |
 | YAML | `PyYAML` | Ubiquitous, sufficient. `tasks.yaml` is machine-managed so comment preservation is not needed. |
@@ -185,8 +185,8 @@ A `rich-click` `Group` named `cli`. Subcommands:
 
 - `cli(path)` — default invocation. Aliased so `todofile <path>` works.
 - `cli init(path)`.
-- `cli task add(path, ...)` — under a `task` group.
-- `cli task remove(path, hash)`.
+- `cli add(path, ...)`.
+- `cli remove(path, hash)`.
 - `cli help format()` — under a `help` group.
 
 Click's `invoke_without_command` + a default callback lets the top-level take
@@ -201,7 +201,7 @@ Each subcommand:
 4. Calls `store.sync()` to align yaml with the md.
 5. Performs the command-specific action.
 
-For `task add`, the date logic resolves the `{start, end, duration}` triple
+For `add`, the date logic resolves the `{start, end, duration}` triple
 before writing yaml.
 
 ### 4.5 `server.py`

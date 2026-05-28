@@ -90,12 +90,12 @@ exists it is used. Otherwise it falls back to `./TODO.md`, then errors.
 | `tsk up [path]` | Start the server detached (background). Writes pid/url into the sidecar. |
 | `tsk down [path]` | Stop the daemon for that TODO. |
 | `tsk init [path]` | Create the sidecar dir, copy `agent.md`, stamp hashes. Creates the file if missing (parent dir must exist). Defaults to `./TODO.md`. |
-| `tsk task add [path] -d "<desc>" [-t tag] [-p parent_hash] [-P project] [-s YYYY-MM-DD] [-e YYYY-MM-DD] [--duration N]` | Add a task to the markdown. |
-| `tsk task remove <hash> [path]` | Remove a task (and its subtasks). |
+| `tsk add [path] -d "<desc>" [-t tag] [-p parent_hash] [-P project] [-s YYYY-MM-DD] [-e YYYY-MM-DD] [--duration N]` | Add a task to the markdown. |
+| `tsk remove <hash> [path]` | Remove a task (and its subtasks). |
 | `tsk config [flags]` | Set per-project preferences in `config.yaml`. See below. |
 | `tsk help format` | Print the TODO.md format spec. |
 
-Date flags for `task add`: pass at most two of `--start-date`, `--end-date`,
+Date flags for `add`: pass at most two of `--start-date`, `--end-date`,
 `--duration` (days, inclusive). The third is derived.
 
 ### `tsk config` flags
@@ -154,7 +154,7 @@ metadata, or commit it if you do — both are valid workflows.
 
 `tsk init` drops a `agent.md` into the sidecar. Point your coding assistant
 at it (the file documents the TODO.md format, what edits are safe, and
-recommends `tsk task add/remove` for non-trivial changes).
+recommends `tsk add/remove` for non-trivial changes).
 
 ## Development
 

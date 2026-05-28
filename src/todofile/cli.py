@@ -193,21 +193,7 @@ def status(path: Path | None) -> None:
         _console.print(f"tsk: daemon is [green]up[/] (pid [bold]{pid}[/]){suffix}")
 
 
-@cli.group()
-def task() -> None:
-    """Add or remove tasks."""
-
-
-@task.command(name="add")
-@click.argument("path", required=False, type=click.Path(dir_okay=False, path_type=Path))
-@click.option("--description", "-d", required=True, help="Task description.")
-@click.option("--tag", "-t", default=None, help="Optional category tag.")
-@click.option("--parent", "-p", "parent_hash", default=None, help="Parent task hash for a subtask.")
-@click.option("--project", "-P", default=None, help="Project to add under.")
-@click.option("--start-date", "-s", "start", type=str, default=None, help="Start date YYYY-MM-DD.")
-@click.option("--end-date", "-e", "end", type=str, default=None, help="End date YYYY-MM-DD.")
-@click.option("--duration", type=int, default=None, help="Duration in days (positive).")
-def task_add(
+def _add_task(
     path: Path | None,
     description: str,
     tag: str | None,
@@ -217,13 +203,14 @@ def task_add(
     end: str | None,
     duration: int | None,
 ) -> None:
-    """Add a new task to the markdown."""
     path = _resolve_path(path)
     doc = _load_doc(path)
 
     if parent_hash:
         if not _HASH_RE.match(parent_hash):
-            raise click.ClickException(f"Invalid hash '{parent_hash}': expected 5 lowercase hex chars.")
+            raise click.ClickException(
+                f"Invalid hash '{parent_hash}': expected 5 lowercase hex chars."
+            )
         parent_task = doc.tasks_by_hash.get(parent_hash)
         if parent_task is None:
             raise click.ClickException(f"No task with hash '{parent_hash}' in {path}.")
@@ -237,6 +224,7 @@ def task_add(
         if project is None:
             if len(existing_projects) == 0:
                 from .models import NO_PROJECT
+
                 resolved_project = NO_PROJECT
             elif len(existing_projects) == 1:
                 resolved_project = existing_projects[0]
@@ -248,7 +236,9 @@ def task_add(
         else:
             if project not in existing_projects:
                 avail = ", ".join(existing_projects) or "(none)"
-                raise click.ClickException(f"No project named '{project}'. Available: {avail}.")
+                raise click.ClickException(
+                    f"No project named '{project}'. Available: {avail}."
+                )
             resolved_project = project
 
     start_d, end_d = _resolve_dates(start, end, duration)
@@ -273,13 +263,11 @@ def task_add(
     _console.print(f"tsk: added ({new_h}).")
 
 
-@task.command(name="remove")
-@click.argument("hash")
-@click.argument("path", required=False, type=click.Path(dir_okay=False, path_type=Path))
-def task_remove(hash: str, path: Path | None) -> None:
-    """Remove the task with the given hash."""
+def _remove_task(hash: str, path: Path | None) -> None:
     if not _HASH_RE.match(hash):
-        raise click.ClickException(f"Invalid hash '{hash}': expected 5 lowercase hex chars.")
+        raise click.ClickException(
+            f"Invalid hash '{hash}': expected 5 lowercase hex chars."
+        )
 
     path = _resolve_path(path)
     doc = _load_doc(path)
@@ -297,6 +285,73 @@ def task_remove(hash: str, path: Path | None) -> None:
     doc2 = parser_mod.parse(path)
     store.sync(doc2, path)
     _console.print(f"tsk: removed ({hash}) and {len(subtasks)} subtask(s).")
+
+
+@cli.command("add")
+@click.argument("path", required=False, type=click.Path(dir_okay=False, path_type=Path))
+@click.option("--description", "-d", required=True, help="Task description.")
+@click.option("--tag", "-t", default=None, help="Optional category tag.")
+@click.option("--parent", "-p", "parent_hash", default=None, help="Parent task hash for a subtask.")
+@click.option("--project", "-P", default=None, help="Project to add under.")
+@click.option("--start-date", "-s", "start", type=str, default=None, help="Start date YYYY-MM-DD.")
+@click.option("--end-date", "-e", "end", type=str, default=None, help="End date YYYY-MM-DD.")
+@click.option("--duration", type=int, default=None, help="Duration in days (positive).")
+def add(
+    path: Path | None,
+    description: str,
+    tag: str | None,
+    parent_hash: str | None,
+    project: str | None,
+    start: str | None,
+    end: str | None,
+    duration: int | None,
+) -> None:
+    """Add a new task to the markdown."""
+    _add_task(path, description, tag, parent_hash, project, start, end, duration)
+
+
+@cli.command("remove")
+@click.argument("hash")
+@click.argument("path", required=False, type=click.Path(dir_okay=False, path_type=Path))
+def remove(hash: str, path: Path | None) -> None:
+    """Remove the task with the given hash."""
+    _remove_task(hash, path)
+
+
+@cli.group(hidden=True)
+def task() -> None:
+    """(Deprecated) Use `tsk add` / `tsk remove`."""
+
+
+@task.command(name="add")
+@click.argument("path", required=False, type=click.Path(dir_okay=False, path_type=Path))
+@click.option("--description", "-d", required=True, help="Task description.")
+@click.option("--tag", "-t", default=None, help="Optional category tag.")
+@click.option("--parent", "-p", "parent_hash", default=None, help="Parent task hash for a subtask.")
+@click.option("--project", "-P", default=None, help="Project to add under.")
+@click.option("--start-date", "-s", "start", type=str, default=None, help="Start date YYYY-MM-DD.")
+@click.option("--end-date", "-e", "end", type=str, default=None, help="End date YYYY-MM-DD.")
+@click.option("--duration", type=int, default=None, help="Duration in days (positive).")
+def task_add(
+    path: Path | None,
+    description: str,
+    tag: str | None,
+    parent_hash: str | None,
+    project: str | None,
+    start: str | None,
+    end: str | None,
+    duration: int | None,
+) -> None:
+    """(Deprecated) Add a new task to the markdown."""
+    _add_task(path, description, tag, parent_hash, project, start, end, duration)
+
+
+@task.command(name="remove")
+@click.argument("hash")
+@click.argument("path", required=False, type=click.Path(dir_okay=False, path_type=Path))
+def task_remove(hash: str, path: Path | None) -> None:
+    """(Deprecated) Remove the task with the given hash."""
+    _remove_task(hash, path)
 
 
 @cli.command("config")
@@ -498,7 +553,7 @@ _FORMAT_HELP_TEXT = """\
 [bold]Storage[/bold]
   Metadata (dates, timestamps) lives in [cyan].<filename>.dir/tasks.yaml[/cyan]
   next to the TODO file. The markdown is never written for dates — only for
-  hash stamping and explicit `task add` / `task remove`.
+  hash stamping and explicit `add` / `remove`.
 """
 
 
@@ -536,7 +591,18 @@ def _parse_date(s: str) -> date:
 
 def main() -> None:
     argv = sys.argv[1:]
-    known_top = {"init", "task", "help", "serve", "up", "down", "config", "status"}
+    known_top = {
+        "init",
+        "task",
+        "add",
+        "remove",
+        "help",
+        "serve",
+        "up",
+        "down",
+        "config",
+        "status",
+    }
     if not argv:
         argv = ["serve"]
     elif not argv[0].startswith("-") and argv[0] not in known_top:

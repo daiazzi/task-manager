@@ -8,9 +8,10 @@
 - [x] FEAT(1cddf): make the refresh automatic after any edit to the TODO.md file.
 - [ ] REFACTOR(a7e8c): Make add and remove first class commands.
   Tasks are added with the `tsk add` command. And removed with the `tsk remove` command.
-- [ ] FEAT(1a194): Command 'annotate' to add a note.
+- [ ] FEAT(1a194): Command 'annotate [NOTE_TEXT]' to add a note.t
   Notes are added with the `tsk annotate` command.
   Notes are not removed via cli because there is no identifier for them.
+  - [ ] REFACTOR(271a1): add hash to notes too so that they can be removed with the `tsk remove` command.
 - [ ] REFACTOR(09067): Default tags should be DOCS, ENV, REFACTOR, FEAT, FIX, PERF, TESTS.
   Should also start with a colour palette when initializing the project.
   default: "#8c8c8c"
@@ -35,8 +36,3 @@
 - [ ] FEAT(095f3): the `tsk init` command should have the same options as `tsk config` so that the project is initiated already with the correct options
 - [ ] FEAT(8a283): Make gantt/calendar panel toggle on/off and add tsk config --show-calendar/--no-show-calendar option
 - [ ] REFACTOR(6d662): Replace httpx with niquests
-
-### Notes
-
-- Test
-- Test 2

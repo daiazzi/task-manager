@@ -38,8 +38,8 @@ It is invoked per-file: each `TODO.md` has its own sidecar directory next to it.
   completed timestamp.
 - The manager edits `TODO.md` in three narrow cases only:
   1. Stamping a 5-character hash into a new task on first sight.
-  2. `todofile task add` — inserts a new bullet.
-  3. `todofile task remove <hash>` — deletes a bullet.
+  2. `todofile add` — inserts a new bullet.
+  3. `todofile remove <hash>` — deletes a bullet.
 
 ### 4.2 Task identity
 
@@ -124,16 +124,16 @@ Built with [`rich-click`](https://github.com/ewels/rich-click).
 |---|---|
 | `todofile <path/to/TODO.md>` | Auto-init if needed, start the web server, open browser. |
 | `todofile init <path/to/TODO.md>` | Create the sidecar dir and stamp hashes into existing tasks. Does not start the server. |
-| `todofile task add ...` | Add a task (see below). |
-| `todofile task remove <hash>` | Remove the task with the given hash from the markdown and its yaml entry. |
+| `todofile add ...` | Add a task (see below). |
+| `todofile remove <hash>` | Remove the task with the given hash from the markdown and its yaml entry. |
 | `todofile help format` | Print the TODO.md format spec to the terminal with rich formatting. |
 
 `todofile <path>` auto-inits silently if the sidecar dir does not exist.
 
-### 6.2 `task add`
+### 6.2 `add`
 
 ```
-todofile task add <path/to/TODO.md> [options]
+todofile add <path/to/TODO.md> [options]
 ```
 
 | Flag | Short | Meaning |
@@ -160,7 +160,7 @@ Insertion point in `TODO.md`:
 ### 6.3 `task remove`
 
 ```
-todofile task remove <path/to/TODO.md> <hash>
+todofile remove <hash> <path/to/TODO.md>
 ```
 
 Removes the bullet line (and any subtask lines if the hash is a parent) from

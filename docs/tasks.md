@@ -50,7 +50,7 @@ clears `completed`.
 1. `cli.py` with `rich-click` groups.
 2. Top-level callback: `todofile <path>` starts server.
 3. `init` subcommand.
-4. `task add` / `task remove` subcommands with all flags from
+4. `add` / `remove` subcommands with all flags from
    [specifications.md §4.3](specifications.md).
 5. `help format` subcommand.
 

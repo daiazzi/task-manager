@@ -87,12 +87,12 @@ If you have shell access, you can use the CLI to make changes too — that's
 safer when in doubt:
 
 ```bash
-tsk task add <path/to/TODO.md> -d "the description" -t api -P backend
-tsk task add <path/to/TODO.md> -d "a subtask" -p <parent-hash>
-tsk task remove <path/to/TODO.md> <hash>
+tsk add <path/to/TODO.md> -d "the description" -t api -P backend
+tsk add <path/to/TODO.md> -d "a subtask" -p <parent-hash>
+tsk remove <hash> <path/to/TODO.md>
 ```
 
-Date flags on `task add`: pass at most two of `--start-date YYYY-MM-DD`,
+Date flags on `add`: pass at most two of `--start-date YYYY-MM-DD`,
 `--end-date YYYY-MM-DD`, `--duration <days>`. The third is derived.
 
 ## 7. After editing
