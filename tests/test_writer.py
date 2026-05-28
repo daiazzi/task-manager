@@ -1,7 +1,14 @@
 from __future__ import annotations
 
-from todofile.parser import existing_hashes, parse_text
-from todofile.writer import insert_task, remove_task, stamp_hashes
+from todofile.parser import existing_hashes, existing_note_ids, parse_text
+from todofile.writer import (
+    insert_task,
+    remove_note,
+    remove_task,
+    set_description,
+    stamp_hashes,
+    stamp_note_hashes,
+)
 
 
 def test_stamp_hashes_adds_to_unstamped():
@@ -63,6 +70,28 @@ def test_insert_top_level():
     assert "(bbbbb): new task" in new_text
     doc = parse_text(new_text)
     assert len(doc.projects[0].tasks) == 2
+
+
+def test_insert_top_level_before_notes_section():
+    text = (
+        "## backend\n"
+        "- [ ] (aaaaa): existing\n"
+        "\n"
+        "### Notes\n"
+        "- note one\n"
+    )
+    new_text = insert_task(
+        text,
+        project="backend",
+        parent_hash=None,
+        tag=None,
+        description="new task",
+        hash="bbbbb",
+    )
+    lines = new_text.splitlines()
+    idx_task = next(i for i, ln in enumerate(lines) if "(bbbbb): new task" in ln)
+    idx_notes = next(i for i, ln in enumerate(lines) if ln.strip().lower().startswith("### notes"))
+    assert idx_task < idx_notes
 
 
 def test_insert_subtask_indent():
@@ -148,3 +177,66 @@ def test_remove_unknown_hash_raises():
     text = "## p\n- [ ] (aaaaa): x\n"
     with pytest.raises(KeyError):
         remove_task(text, "fffff")
+
+
+def test_stamp_note_hashes_adds_ids_under_notes_only():
+    text = (
+        "## p\n"
+        "### Notes\n"
+        "- first\n"
+        "  more\n"
+        "- (xabcde): already\n"
+        "\n"
+        "- [ ] (aaaaa): task\n"
+        "### Notes\n"
+        "- second\n"
+    )
+    existing = existing_note_ids(text)
+    new_text, stamped = stamp_note_hashes(text, existing)
+    assert "(xabcde): already" in new_text
+    assert len(stamped) == 2
+    for _, note_id in stamped.items():
+        assert f"({note_id}):" in new_text
+
+
+def test_remove_note_removes_entire_block():
+    text = (
+        "## p\n"
+        "### Notes\n"
+        "- (xabcde): first\n"
+        "  cont\n"
+        "- second\n"
+        "- [ ] (aaaaa): task\n"
+    )
+    new_text = remove_note(text, "xabcde")
+    assert "xabcde" not in new_text
+    assert "cont" not in new_text
+    assert "- second" in new_text
+
+
+def test_set_description_replaces_inline_and_continuation_only():
+    text = (
+        "## p\n"
+        "- [ ] api(aaaaa): line one\n"
+        "  line two\n"
+        "  - a sub-bullet of the description\n"
+        "  another line\n"
+        "  - [ ] (bbbbb): child\n"
+        "    child desc\n"
+        "- [ ] (ccccc): sibling\n"
+    )
+    new_text = set_description(text, "aaaaa", "new first\nnew second\n")
+    doc = parse_text(new_text)
+    assert doc.tasks_by_hash["aaaaa"].description == "new first\nnew second"
+    # Subtask preserved
+    assert "bbbbb" in doc.tasks_by_hash
+    assert doc.tasks_by_hash["bbbbb"].parent_hash == "aaaaa"
+    # Sibling preserved
+    assert "ccccc" in doc.tasks_by_hash
+
+
+def test_set_description_empty_allowed():
+    text = "## p\n- [ ] (aaaaa): something\n  more\n"
+    new_text = set_description(text, "aaaaa", "")
+    doc = parse_text(new_text)
+    assert doc.tasks_by_hash["aaaaa"].description == ""

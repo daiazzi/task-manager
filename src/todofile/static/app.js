@@ -179,6 +179,19 @@ async function postDone(hash, done) {
   return r.json();
 }
 
+async function postDescription(hash, description) {
+  const r = await fetch(`/api/tasks/${hash}/description`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ description }),
+  });
+  if (!r.ok) {
+    const data = await r.json().catch(() => ({ error: 'update failed' }));
+    throw new Error(data.error || 'update failed');
+  }
+  return r.json();
+}
+
 async function postDates(hash, start, end) {
   const r = await fetch(`/api/tasks/${hash}/dates`, {
     method: 'POST',
@@ -289,6 +302,18 @@ function render() {
     $('#calendar-view').hidden = false;
     renderCalendar();
   }
+}
+
+function findTaskByHash(hash) {
+  for (const p of state.projects) {
+    for (const t of p.tasks || []) {
+      if (t.hash === hash) return t;
+      for (const c of t.subtasks || []) {
+        if (c.hash === hash) return c;
+      }
+    }
+  }
+  return null;
 }
 
 function renderTodoPath() {
@@ -703,6 +728,84 @@ function openTaskModal(task) {
   body.className = 'modal-body';
   body.innerHTML = renderMarkdown(task.description || '');
   modal.appendChild(body);
+
+  const actions = document.createElement('div');
+  actions.className = 'modal-actions';
+  const editBtn = document.createElement('button');
+  editBtn.type = 'button';
+  editBtn.className = 'modal-edit';
+  editBtn.textContent = 'Edit';
+  actions.appendChild(editBtn);
+  modal.appendChild(actions);
+
+  let editing = false;
+  let textarea = null;
+  let saveBtn = null;
+  let cancelBtn = null;
+
+  const renderView = (t) => {
+    body.innerHTML = renderMarkdown(t.description || '');
+  };
+
+  const enterEdit = () => {
+    if (editing) return;
+    editing = true;
+    actions.innerHTML = '';
+    textarea = document.createElement('textarea');
+    textarea.className = 'modal-editor';
+    textarea.value = task.description || '';
+    body.innerHTML = '';
+    body.appendChild(textarea);
+    textarea.focus();
+
+    cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'modal-cancel';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.addEventListener('click', () => {
+      editing = false;
+      body.innerHTML = '';
+      renderView(task);
+      actions.innerHTML = '';
+      actions.appendChild(editBtn);
+    });
+
+    saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.className = 'modal-save';
+    saveBtn.textContent = 'Save';
+    saveBtn.addEventListener('click', async () => {
+      if (saveBtn.dataset.busy === '1') return;
+      saveBtn.dataset.busy = '1';
+      saveBtn.disabled = true;
+      cancelBtn.disabled = true;
+      try {
+        const data = await postDescription(task.hash, textarea.value || '');
+        applyData(data);
+        render();
+        const updated = findTaskByHash(task.hash) || task;
+        task = updated;
+        editing = false;
+        toast('Saved', 'ok');
+        // Re-render modal with the updated description.
+        body.innerHTML = '';
+        renderView(task);
+        actions.innerHTML = '';
+        actions.appendChild(editBtn);
+      } catch (e) {
+        toast(e.message, 'error');
+      } finally {
+        delete saveBtn.dataset.busy;
+        saveBtn.disabled = false;
+        cancelBtn.disabled = false;
+      }
+    });
+
+    actions.appendChild(cancelBtn);
+    actions.appendChild(saveBtn);
+  };
+
+  editBtn.addEventListener('click', enterEdit);
 
   if ((task.subtasks || []).length) {
     const subhead = document.createElement('h3');

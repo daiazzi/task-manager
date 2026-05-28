@@ -17,6 +17,7 @@ from . import store
 
 _console = Console()
 _HASH_RE = re.compile(r"^[0-9a-f]{5}$")
+_NOTE_ID_RE = re.compile(r"^x[0-9a-f]{5}$")
 _HEX_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 
@@ -73,11 +74,19 @@ def _load_doc(path: Path):
     store.ensure_sidecar(path)
     text = path.read_text(encoding="utf-8")
     existing = parser_mod.existing_hashes(text)
+    existing_notes = parser_mod.existing_note_ids(text)
     doc = parser_mod.parse_text(text, path=path)
 
     unstamped = [h for h in doc.tasks_by_hash if h.startswith("__new")]
+    new_text = text
+    changed = False
     if unstamped:
-        new_text, _ = writer_mod.stamp_hashes(text, existing)
+        new_text, _ = writer_mod.stamp_hashes(new_text, existing)
+        changed = True
+    new_text, note_stamped = writer_mod.stamp_note_hashes(new_text, existing_notes)
+    if note_stamped:
+        changed = True
+    if changed:
         path.write_text(new_text, encoding="utf-8")
         doc = parser_mod.parse(path)
 
@@ -138,8 +147,12 @@ def init(path: Path | None) -> None:
     store.ensure_sidecar(path)
     text = path.read_text(encoding="utf-8")
     existing = parser_mod.existing_hashes(text)
+    existing_notes = parser_mod.existing_note_ids(text)
     new_text, stamped = writer_mod.stamp_hashes(text, existing)
+    new_text, note_stamped = writer_mod.stamp_note_hashes(new_text, existing_notes)
     if stamped:
+        path.write_text(new_text, encoding="utf-8")
+    elif note_stamped:
         path.write_text(new_text, encoding="utf-8")
     doc = parser_mod.parse(path)
     store.sync(doc, path)
@@ -147,6 +160,8 @@ def init(path: Path | None) -> None:
         _console.print(f"tsk: created {path}")
     _console.print(f"tsk: initialized {store.sidecar_dir(path).name}")
     _console.print(f"tsk: stamped {len(stamped)} new task(s)")
+    if note_stamped:
+        _console.print(f"tsk: stamped {len(note_stamped)} new note id(s)")
     for w in doc.warnings:
         _console.print(f"[yellow]warning:[/yellow] {w}")
 
@@ -315,7 +330,61 @@ def add(
 @click.argument("path", required=False, type=click.Path(dir_okay=False, path_type=Path))
 def remove(hash: str, path: Path | None) -> None:
     """Remove the task with the given hash."""
+    if _NOTE_ID_RE.match(hash):
+        todo = _resolve_path(path)
+        _load_doc(todo)
+        text = todo.read_text(encoding="utf-8")
+        try:
+            new_text = writer_mod.remove_note(text, hash)
+        except KeyError:
+            raise click.ClickException(f"No note with id '{hash}' in {todo}.")
+        except ValueError:
+            raise click.ClickException(
+                f"Invalid note id '{hash}': expected x + 5 lowercase hex chars."
+            )
+        todo.write_text(new_text, encoding="utf-8")
+        doc2 = parser_mod.parse(todo)
+        store.sync(doc2, todo)
+        _console.print(f"tsk: removed note ({hash}).")
+        return
     _remove_task(hash, path)
+
+
+@cli.command("annotate")
+@click.argument("note_text")
+@click.argument("path", required=False, type=click.Path(dir_okay=False, path_type=Path))
+@click.option("--project", "-P", "project", default=None, help="Project to add the note under.")
+def annotate(note_text: str, path: Path | None, project: str | None) -> None:
+    """Add a note under a project's ### Notes section."""
+    todo = _resolve_path(path)
+    doc = _load_doc(todo)
+
+    projects = [p.name for p in doc.projects]
+    if project is None:
+        if len(projects) > 1:
+            avail = ", ".join(projects)
+            raise click.ClickException(
+                f"Must pass --project when the file has more than one project. Available: {avail}."
+            )
+        project = projects[0] if projects else None
+
+    if project is None:
+        from .models import NO_PROJECT
+
+        project = NO_PROJECT
+    elif project not in projects:
+        avail = ", ".join(projects) or "(none)"
+        raise click.ClickException(f"No project named '{project}'. Available: {avail}.")
+
+    existing_notes = parser_mod.existing_note_ids(todo.read_text(encoding="utf-8"))
+    note_id = writer_mod.new_note_id(existing_notes)
+    text = todo.read_text(encoding="utf-8")
+    new_text = writer_mod.insert_note(text, project=project, note_id=note_id, note_text=note_text)
+    todo.write_text(new_text, encoding="utf-8")
+
+    doc2 = parser_mod.parse(todo)
+    store.sync(doc2, todo)
+    _console.print(f"tsk: annotated ({note_id}).")
 
 
 @cli.group(hidden=True)
@@ -596,6 +665,7 @@ def main() -> None:
         "task",
         "add",
         "remove",
+        "annotate",
         "help",
         "serve",
         "up",

@@ -209,7 +209,7 @@ def test_project_notes():
     text = (
         "## backend\n"
         "### Notes\n"
-        "- Chose PostgreSQL.\n"
+        "- (xabcde): Chose PostgreSQL.\n"
         "  More detail on the next line.\n"
         "- Idea: add caching.\n"
         "\n"
@@ -219,6 +219,7 @@ def test_project_notes():
     p = doc.projects[0]
     assert p.name == "backend"
     assert len(p.notes) == 2
+    assert p.notes[0].hash == "xabcde"
     assert "PostgreSQL" in p.notes[0].content
     assert "More detail" in p.notes[0].content
     assert "caching" in p.notes[1].content

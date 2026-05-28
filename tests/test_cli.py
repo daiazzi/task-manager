@@ -159,6 +159,39 @@ def test_task_remove_unknown_hash(tmp_path: Path):
     assert "No task with hash" in result.output
 
 
+def test_annotate_requires_project_when_ambiguous(tmp_path: Path):
+    p = tmp_path / "TODO.md"
+    p.write_text("## a\n- [ ] (aaaaa): x\n## b\n- [ ] (bbbbb): y\n")
+    runner = CliRunner()
+    result = runner.invoke(cli, ["annotate", "hello", str(p)])
+    assert result.exit_code != 0
+    assert "--project" in result.output
+
+
+def test_annotate_inserts_note_with_id(tmp_path: Path):
+    p = tmp_path / "TODO.md"
+    p.write_text("## a\n- [ ] (aaaaa): x\n")
+    runner = CliRunner()
+    result = runner.invoke(cli, ["annotate", "hello", str(p), "-P", "a"])
+    assert result.exit_code == 0, result.output
+    text = p.read_text()
+    assert "### Notes" in text
+    assert "hello" in text
+    assert "(x" in text  # should have an x-prefixed note id
+
+
+def test_remove_note_id(tmp_path: Path):
+    p = tmp_path / "TODO.md"
+    p.write_text("## p\n### Notes\n- (xabcde): first\n  cont\n- [ ] (aaaaa): task\n")
+    runner = CliRunner()
+    result = runner.invoke(cli, ["remove", "xabcde", str(p)])
+    assert result.exit_code == 0, result.output
+    text = p.read_text()
+    assert "xabcde" not in text
+    assert "cont" not in text
+    assert "(aaaaa)" in text
+
+
 def test_help_format(tmp_path: Path):
     runner = CliRunner()
     result = runner.invoke(cli, ["help", "format"])

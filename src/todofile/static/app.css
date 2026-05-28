@@ -676,6 +676,35 @@ main {
   color: var(--text);
 }
 
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.modal-editor {
+  width: 100%;
+  min-height: 220px;
+  resize: vertical;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+[data-theme="dark"] .modal-editor { color-scheme: dark; }
+[data-theme="light"] .modal-editor { color-scheme: light; }
+
+.modal-editor:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .modal-body h1, .modal-body h2, .modal-body h3 {
   margin-top: 1.2em;
   margin-bottom: 0.4em;

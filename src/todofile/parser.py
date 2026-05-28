@@ -10,11 +10,13 @@ _BULLET_RE = re.compile(r"^(?P<indent>[ \t]*)(?P<marker>[-*])\s+\[(?P<check>[ xX
 _NOTE_BULLET_RE = re.compile(
     r"^(?P<indent>[ \t]*)(?P<marker>[-*])\s+(?!\[(?: |x|X)\])(?P<body>.*)$"
 )
+_NOTE_ID_PREFIX_RE = re.compile(r"^\((?P<hash>x[0-9a-fA-F]{5})\)\s*:\s*(?P<rest>.*)$")
 _BODY_STAMPED_RE = re.compile(
     r"^(?:(?P<tag>[A-Za-z0-9_\-]+))?\((?P<hash>[0-9a-fA-F]{5})\)\s*:\s*(?P<desc>.*)$"
 )
 _BODY_FALLBACK_TAG_RE = re.compile(r"^(?P<tag>[A-Za-z0-9_\-]+):\s*(?P<desc>.*)$")
 _HASH_PATTERN = re.compile(r"\(([0-9a-fA-F]{5})\)")
+_NOTE_ID_PATTERN = re.compile(r"\((x[0-9a-fA-F]{5})\)")
 
 
 def _indent_width(s: str) -> int:
@@ -91,11 +93,17 @@ def parse_text(text: str, path: Path | None = None) -> ParsedDocument:
         while pending_note_lines and not pending_note_lines[-1].strip():
             pending_note_lines.pop()
         if pending_note_lines:
+            note_hash: str | None = None
+            if pending_note_lines:
+                m_id = _NOTE_ID_PREFIX_RE.match(pending_note_lines[0].strip())
+                if m_id:
+                    note_hash = m_id.group("hash").lower()
+                    pending_note_lines[0] = m_id.group("rest")
             common = _common_leading_ws([ln for ln in pending_note_lines if ln.strip()])
             stripped = [ln[common:] if len(ln) >= common else ln for ln in pending_note_lines]
             content = "\n".join(stripped).strip()
             if content:
-                current_project.notes.append(Note(content=content))
+                current_project.notes.append(Note(hash=note_hash, content=content))
         pending_note_lines = None
         pending_note_indent = None
 
@@ -272,3 +280,7 @@ def parse(path: Path) -> ParsedDocument:
 
 def existing_hashes(text: str) -> set[str]:
     return {m.group(1).lower() for m in _HASH_PATTERN.finditer(text)}
+
+
+def existing_note_ids(text: str) -> set[str]:
+    return {m.group(1).lower() for m in _NOTE_ID_PATTERN.finditer(text)}

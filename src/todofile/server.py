@@ -53,7 +53,7 @@ def _serialise(doc: ParsedDocument, todo_path: Path) -> dict:
         "projects": [
             {
                 "name": p.name,
-                "notes": [{"content": n.content} for n in p.notes],
+                "notes": [{"hash": n.hash, "content": n.content} for n in p.notes],
                 "tasks": [task_dict(t) for t in p.tasks],
             }
             for p in doc.projects
@@ -65,10 +65,18 @@ def _serialise(doc: ParsedDocument, todo_path: Path) -> dict:
 def _reload(todo_path: Path) -> ParsedDocument:
     text = todo_path.read_text(encoding="utf-8")
     existing = parser_mod.existing_hashes(text)
+    existing_notes = parser_mod.existing_note_ids(text)
     doc = parser_mod.parse_text(text, path=todo_path)
     unstamped = [h for h in doc.tasks_by_hash if h.startswith("__new")]
+    new_text = text
+    changed = False
     if unstamped:
-        new_text, _ = writer_mod.stamp_hashes(text, existing)
+        new_text, _ = writer_mod.stamp_hashes(new_text, existing)
+        changed = True
+    new_text, note_stamped = writer_mod.stamp_note_hashes(new_text, existing_notes)
+    if note_stamped:
+        changed = True
+    if changed:
         todo_path.write_text(new_text, encoding="utf-8")
         doc = parser_mod.parse(todo_path)
     store.sync(doc, todo_path)
@@ -256,6 +264,27 @@ def build_app(todo_path: Path) -> Starlette:
         doc = _reload(todo_path)
         return JSONResponse(_serialise(doc, todo_path))
 
+    async def post_description(request: Request) -> Response:
+        hash_ = request.path_params["hash"]
+        body = await request.body()
+        try:
+            data = json.loads(body) if body else {}
+        except json.JSONDecodeError:
+            return JSONResponse({"error": "Invalid JSON body."}, status_code=400)
+        if "description" not in data or not isinstance(data["description"], str):
+            return JSONResponse(
+                {"error": "Expected JSON body {\"description\": string}."}, status_code=400
+            )
+
+        text = todo_path.read_text(encoding="utf-8")
+        try:
+            new_text = writer_mod.set_description(text, hash_, data["description"])
+        except KeyError:
+            return JSONResponse({"error": f"No task with hash '{hash_}'."}, status_code=404)
+        todo_path.write_text(new_text, encoding="utf-8")
+        doc = _reload(todo_path)
+        return JSONResponse(_serialise(doc, todo_path))
+
     routes = [
         Route("/", index),
         Route("/api/tasks", get_tasks),
@@ -264,6 +293,7 @@ def build_app(todo_path: Path) -> Starlette:
         Route("/api/tasks/reorder", post_reorder, methods=["POST"]),
         Route("/api/tasks/{hash}/dates", post_dates, methods=["POST"]),
         Route("/api/tasks/{hash}/done", post_done, methods=["POST"]),
+        Route("/api/tasks/{hash}/description", post_description, methods=["POST"]),
         Mount("/static", app=StaticFiles(directory=str(STATIC_DIR)), name="static"),
     ]
 

@@ -1,6 +1,5 @@
 # TODO
 
-
 ## Tasks
 
 - [x] REFACTOR(18c87): Rename package to `todofile`.
@@ -8,13 +7,16 @@
 - [x] FEAT(1cddf): make the refresh automatic after any edit to the TODO.md file.
 - [x] REFACTOR(a7e8c): Make add and remove first class commands.
   Tasks are added with the `tsk add` command. And removed with the `tsk remove` command.
-- [ ] FIX(47a77): tasks are appended to Notes section if Notes section exists
+- [x] FIX(47a77): tasks are appended to Notes section if Notes section exists
   after the last task.
   Instead it should go under the project's tasks and Notes should always be at the end of the project.
-- [ ] FEAT(1a194): Command 'annotate [NOTE_TEXT]' to add a note.t
+- [x] FEAT(1a194): Command 'annotate [NOTE_TEXT]' to add a note.t
   Notes are added with the `tsk annotate` command.
   Notes are not removed via cli because there is no identifier for them.
-  - [ ] REFACTOR(271a1): add hash to notes too so that they can be removed with the `tsk remove` command.
+  - [x] REFACTOR(271a1): add hash to notes too so that they can be removed with the `tsk remove` command.
+- [x] FEAT(2cb04): Make the pop up window's content (task) editable.
+- [ ] FEAT(33e74): Make notes clickable with popup window like tasks
+  Only the description of the task and the note should be editable.
 - [ ] REFACTOR(09067): Default tags should be DOCS, ENV, REFACTOR, FEAT, FIX, PERF, TESTS.
   Should also start with a colour palette when initializing the project.
   default: "#8c8c8c"
@@ -28,11 +30,10 @@
   MISC: "#339999"
 - [ ] FEAT(a1b6a): Add `tsk restart [path]` command (performs down and up).
 - [ ] FEAT(270df): Align horizontally tasks in task panel with gantt visualisation
-- [ ] FEAT(33e74): Make notes clickable with popup window like tasks
-  - [ ] FEAT(446b5): Add 'delete' button to notes in the pop up window (TO BE DISCUSSED because there is no identifier for them)
-- [ ] FEAT(2cb04): Make the pop up window's content (task and note) editable.
-  Only the description of the task and the note should be editable.
 - [ ] FIX(d1f2f): When automatically editing the TODO, after any h (h1, h2, h3) there should be an empty line
 - [ ] FEAT(095f3): the `tsk init` command should have the same options as `tsk config` so that the project is initiated already with the correct options
 - [ ] FEAT(8a283): Make gantt/calendar panel toggle on/off and add tsk config --show-calendar/--no-show-calendar option
 - [ ] REFACTOR(6d662): Replace httpx with niquests
+
+### Notes
+- (xd51ca): test

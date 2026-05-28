@@ -25,6 +25,7 @@ class Task:
 @dataclass(slots=True)
 class Note:
     content: str
+    hash: str | None = None
 
 
 @dataclass(slots=True)
