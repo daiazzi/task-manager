@@ -6,8 +6,11 @@
 - [x] REFACTOR(18c87): Rename package to `todofile`.
   The CLI entry point stays `tsk`.
 - [x] FEAT(1cddf): make the refresh automatic after any edit to the TODO.md file.
-- [ ] REFACTOR(a7e8c): Make add and remove first class commands.
+- [x] REFACTOR(a7e8c): Make add and remove first class commands.
   Tasks are added with the `tsk add` command. And removed with the `tsk remove` command.
+- [ ] FIX(47a77): tasks are appended to Notes section if Notes section exists
+  after the last task.
+  Instead it should go under the project's tasks and Notes should always be at the end of the project.
 - [ ] FEAT(1a194): Command 'annotate [NOTE_TEXT]' to add a note.t
   Notes are added with the `tsk annotate` command.
   Notes are not removed via cli because there is no identifier for them.
@@ -30,9 +33,6 @@
 - [ ] FEAT(2cb04): Make the pop up window's content (task and note) editable.
   Only the description of the task and the note should be editable.
 - [ ] FIX(d1f2f): When automatically editing the TODO, after any h (h1, h2, h3) there should be an empty line
-- [ ] FIX(47a77): tasks are appended to Notes section if Notes section exists
-  after the last task.
-  Instead it should go under the project's tasks and Notes should always be at the end of the project.
 - [ ] FEAT(095f3): the `tsk init` command should have the same options as `tsk config` so that the project is initiated already with the correct options
 - [ ] FEAT(8a283): Make gantt/calendar panel toggle on/off and add tsk config --show-calendar/--no-show-calendar option
 - [ ] REFACTOR(6d662): Replace httpx with niquests
