@@ -14,6 +14,7 @@
 - feat(CLI): add `tsk restart` command (down + up)
 - feat(UI): allow `Esc` to close task/note popup
 - fix: ensure blank line after markdown headings on write
+- feat(CLI): `tsk init` accepts `tsk config` flags
 
 ## 0.1.0 (2026-05-28)
 

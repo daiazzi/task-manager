@@ -124,13 +124,67 @@ def serve(path: Path | None, no_browser: bool, host: str, port: int | None) -> N
 
 @cli.command()
 @click.argument("path", required=False, type=click.Path(dir_okay=False, path_type=Path))
-def init(path: Path | None) -> None:
+@click.option("--dark-mode", "dark_mode", is_flag=True, help="Set the UI theme to dark.")
+@click.option("--light-mode", "light_mode", is_flag=True, help="Set the UI theme to light.")
+@click.option(
+    "--tag-col",
+    "tag_cols",
+    multiple=True,
+    help='Set a tag colour. Format: "TAG:color" (palette name or hex). Repeatable.',
+)
+@click.option(
+    "--show-dates/--no-show-dates",
+    "show_dates",
+    default=None,
+    help="Show or hide the start/end columns in the UI by default.",
+)
+@click.option(
+    "--default-duration",
+    "default_duration",
+    type=int,
+    default=None,
+    help="Set the default duration (in days) for new tasks.",
+)
+@click.option(
+    "--text-size",
+    "text_size",
+    type=click.Choice(["small", "medium", "big"]),
+    default=None,
+    help="UI text size.",
+)
+@click.option(
+    "--auto-refresh/--no-auto-refresh",
+    "auto_refresh",
+    default=None,
+    help="Automatically refresh the UI when the TODO file changes.",
+)
+@click.option("--list-colors", "list_colors", is_flag=True, help="Print the colour palette and exit.")
+def init(
+    path: Path | None,
+    dark_mode: bool,
+    light_mode: bool,
+    tag_cols: tuple[str, ...],
+    show_dates: bool | None,
+    default_duration: int | None,
+    text_size: str | None,
+    auto_refresh: bool | None,
+    list_colors: bool,
+) -> None:
     """Create the sidecar directory and stamp hashes into the markdown.
 
     If no PATH is given, defaults to ./TODO.md in the current directory.
     If the TODO file does not exist, it is created with a default scaffold.
     The parent directory must exist.
     """
+    if list_colors:
+        _show_palette()
+        return
+
+    if dark_mode and light_mode:
+        raise click.ClickException("--dark-mode and --light-mode are mutually exclusive.")
+    if default_duration is not None and default_duration <= 0:
+        raise click.ClickException("--default-duration must be a positive integer.")
+
     if path is None:
         path = Path.cwd() / "TODO.md"
     path = path.expanduser().resolve()
@@ -145,6 +199,52 @@ def init(path: Path | None) -> None:
         created = True
 
     store.ensure_sidecar(path)
+
+    # Apply config flags (same surface as `tsk config`) during init.
+    parsed_colors: dict[str, str] = {}
+    for entry in tag_cols:
+        for piece in entry.split(","):
+            piece = piece.strip()
+            if not piece:
+                continue
+            if ":" not in piece:
+                raise click.ClickException(
+                    f"--tag-col entry '{piece}' is missing ':'; expected TAG:color."
+                )
+            tag_name, _, color_value = piece.partition(":")
+            tag_name = tag_name.strip()
+            color_value = color_value.strip()
+            if not tag_name:
+                raise click.ClickException("--tag-col entry is missing the tag name.")
+            parsed_colors[tag_name] = _resolve_color(color_value)
+
+    any_cfg_change = (
+        dark_mode
+        or light_mode
+        or bool(parsed_colors)
+        or show_dates is not None
+        or default_duration is not None
+        or text_size is not None
+        or auto_refresh is not None
+    )
+    if any_cfg_change:
+        cfg = store.load_config(path)
+        if dark_mode:
+            cfg.theme = "dark"
+        if light_mode:
+            cfg.theme = "light"
+        if show_dates is not None:
+            cfg.show_dates = show_dates
+        if default_duration is not None:
+            cfg.default_duration = default_duration
+        if text_size is not None:
+            cfg.text_size = text_size
+        if auto_refresh is not None:
+            cfg.auto_refresh = auto_refresh
+        for tag_name, hex_value in parsed_colors.items():
+            cfg.colors[tag_name] = hex_value
+        store.save_config(path, cfg)
+
     text = path.read_text(encoding="utf-8")
     existing = parser_mod.existing_hashes(text)
     existing_notes = parser_mod.existing_note_ids(text)

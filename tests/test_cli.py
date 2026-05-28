@@ -6,7 +6,7 @@ from click.testing import CliRunner
 
 from todofile.cli import cli
 from todofile.parser import parse
-from todofile.store import load_tasks_yaml, sidecar_dir
+from todofile.store import load_config, load_tasks_yaml, sidecar_dir
 
 
 def test_init_creates_sidecar_and_stamps(tmp_path: Path):
@@ -31,6 +31,35 @@ def test_init_creates_missing_file(tmp_path: Path):
     text = p.read_text()
     assert "# fresh" in text
     assert "## Tasks" in text
+
+
+def test_init_accepts_config_flags(tmp_path: Path):
+    p = tmp_path / "TODO.md"
+    p.write_text("## p\n- [ ] (a4f9c): x\n")
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "init",
+            str(p),
+            "--light-mode",
+            "--no-show-dates",
+            "--text-size",
+            "big",
+            "--default-duration",
+            "7",
+            "--tag-col",
+            "FEAT:blue,FIX:red",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    cfg = load_config(p)
+    assert cfg.theme == "light"
+    assert cfg.show_dates is False
+    assert cfg.text_size == "big"
+    assert cfg.default_duration == 7
+    assert cfg.colors["FEAT"] == "#7aa2f7"
+    assert cfg.colors["FIX"] == "#f7768e"
 
 
 def test_init_errors_on_missing_parent(tmp_path: Path):
