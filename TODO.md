@@ -35,3 +35,4 @@
 - [x] FEAT(270df): Align horizontally tasks in task panel with gantt visualisation
 - [x] FEAT(8a283): Make gantt/calendar panel toggle on/off and add tsk config --show-calendar/--no-show-calendar option
 - [ ] REFACTOR(6d662): Replace httpx with niquests.
+- [ ] FEAT(ee1c6): Allow default duration to be 0 - that means that there is not default dates
