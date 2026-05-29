@@ -124,6 +124,7 @@ _DEFAULT_COLORS = {
     "DOCS": "#663300",
     "ENV": "#999900",
     "MISC": "#339999",
+    "DEADLINE": "#ffff00"
 }
 
 
