@@ -34,5 +34,10 @@
 - [x] FEAT(095f3): the `tsk init` command should have the same options as `tsk config` so that the project is initiated already with the correct options. This could be implemented by running config after init that would change everything to default values.
 - [x] FEAT(270df): Align horizontally tasks in task panel with gantt visualisation
 - [x] FEAT(8a283): Make gantt/calendar panel toggle on/off and add tsk config --show-calendar/--no-show-calendar option
+- [x] FEAT(ee1c6): Allow default duration to be 0 - that means that there is not default dates
+
 - [ ] REFACTOR(6d662): Replace httpx with niquests.
-- [ ] FEAT(ee1c6): Allow default duration to be 0 - that means that there is not default dates
+- [ ] REFACTOR(5bd57): In  option  should be an argument because it is required anyway
+- [ ] REFACTOR(afd6c): In `tsk add` option `-d` should be an argument because it is required anyway
+- [ ] FEAT(aae8b): New type of task `deadline` that has only one date and a different representation on the gantt
+- [ ] FEAT(93fdc): Github action to push versions to gitbucket

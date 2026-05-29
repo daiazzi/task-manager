@@ -70,7 +70,7 @@ def test_config_default_duration_flag(tmp_path: Path, monkeypatch):
     assert cfg.default_duration == 7
 
 
-def test_config_default_duration_rejects_zero(tmp_path: Path, monkeypatch):
+def test_config_default_duration_zero_disables_dates(tmp_path: Path, monkeypatch):
     p = tmp_path / "TODO.md"
     p.write_text("# t\n\n## p\n")
     ensure_sidecar(p)
@@ -78,8 +78,48 @@ def test_config_default_duration_rejects_zero(tmp_path: Path, monkeypatch):
 
     runner = CliRunner()
     result = runner.invoke(cli, ["config", "--default-duration", "0"])
+    assert result.exit_code == 0, result.output
+    cfg = load_config(p)
+    assert cfg.default_duration == 0
+
+
+def test_sync_skips_default_dates_when_duration_zero(tmp_path: Path):
+    p = tmp_path / "TODO.md"
+    p.write_text("## p\n- [ ] (a4f9c): x\n")
+    ensure_sidecar(p)
+    cfg = load_config(p)
+    cfg.default_duration = 0
+    save_config(p, cfg)
+
+    sync(parse_text(p.read_text(), path=p), p)
+    row = load_tasks_yaml(p)["a4f9c"]
+    assert row.start is None
+    assert row.end is None
+    assert row.created is not None
+
+
+def test_config_default_duration_rejects_negative(tmp_path: Path, monkeypatch):
+    p = tmp_path / "TODO.md"
+    p.write_text("# t\n\n## p\n")
+    ensure_sidecar(p)
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["config", "--default-duration", "-1"])
     assert result.exit_code != 0
-    assert "positive integer" in result.output
+    assert "zero or a positive integer" in result.output
+
+
+def test_default_duration_zero_persists_in_yaml(tmp_path: Path):
+    p = tmp_path / "TODO.md"
+    p.write_text("# t\n")
+    ensure_sidecar(p)
+    cfg = load_config(p)
+    cfg.default_duration = 0
+    save_config(p, cfg)
+
+    cfg2 = load_config(p)
+    assert cfg2.default_duration == 0
 
 
 def test_config_help_when_no_args(tmp_path: Path, monkeypatch):

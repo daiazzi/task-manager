@@ -9,15 +9,16 @@
 - feat: add annotate command to add a note.
 - feat: add hash to notes so that they can be removed with the `tsk remove` command.
 - feat: Make the pop up window's content (task) editable.
-- feat: Make notes clickable with popup window like tasks
-- feat: Default tags DOCS, ENV, REFACTOR, FEAT, FIX, PERF, TESTS
-- feat(CLI): add `tsk restart` command (down + up)
-- feat(UI): allow `Esc` to close task/note popup
-- fix: ensure blank line after markdown headings on write
-- feat(CLI): `tsk init` accepts `tsk config` flags
-- feat(UI): align horizontally tasks in task panel with gantt visualisation
-- feat(UI): make gantt/calendar panel toggle on/off and add tsk config --show-calendar/--no-show-calendar option
-- feat(CLI): allow default duration to be 0 - that means that there is not default dates
+- feat: Make notes clickable with popup window like tasks.
+- feat: Default tags DOCS, ENV, REFACTOR, FEAT, FIX, PERF, TESTS.
+- feat(CLI): add `tsk restart` command (down + up).
+- feat(UI): allow `Esc` to close task/note popup.
+- fix: ensure blank line after markdown headings on write.
+- feat(CLI): `tsk init` accepts `tsk config` flags.
+- feat(UI): align horizontally tasks in task panel with gantt visualisation.
+- feat(UI): make gantt/calendar panel toggle on/off and add tsk config --show-calendar/--no-show-calendar option.
+- feat(CLI): allow default duration to be 0 - that means that there is not default dates.
+- feat: allow 0 duration tasks (no automatic dates).
 
 ## 0.1.0 (2026-05-28)
 

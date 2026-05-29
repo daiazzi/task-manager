@@ -26,7 +26,7 @@ show_calendar: false    # show the Calendar column (UI switch persists here)
 show_weekends: false    # include Sat/Sun in the Gantt day grid (no UI switch)
 auto_refresh: true      # refresh UI automatically on TODO.md edits
 
-# New tasks get start=today, end=today+(default_duration-1) days.
+# New tasks get start=today, end=today+(default_duration-1) days. Use 0 for no default dates.
 default_duration: 1
 
 # Tag colours. The "default" entry colours tags without a specific mapping.
@@ -148,7 +148,7 @@ def load_config(todo_path: Path) -> Config:
     if theme not in ("dark", "light"):
         theme = "dark"
     duration = raw.get("default_duration", 1)
-    if not isinstance(duration, int) or duration <= 0:
+    if not isinstance(duration, int) or duration < 0:
         duration = 1
     show_dates = raw.get("show_dates", True)
     if not isinstance(show_dates, bool):
@@ -225,16 +225,19 @@ def sync(doc: ParsedDocument, todo_path: Path) -> ParsedDocument:
     cfg = load_config(todo_path)
     now = datetime.now().replace(microsecond=0)
     today = now.date()
-    default_end = today + timedelta(days=max(cfg.default_duration - 1, 0))
     changed = False
 
     # Walk parsed tasks
     for h, task in doc.tasks_by_hash.items():
         meta = yaml_data.get(h)
         if meta is None:
-            meta = TaskMetadata(
-                hash=h, created=now, start=today, end=default_end
-            )
+            if cfg.default_duration == 0:
+                meta = TaskMetadata(hash=h, created=now)
+            else:
+                default_end = today + timedelta(days=cfg.default_duration - 1)
+                meta = TaskMetadata(
+                    hash=h, created=now, start=today, end=default_end
+                )
             yaml_data[h] = meta
             changed = True
         else:

@@ -161,7 +161,7 @@ def serve(path: Path | None, no_browser: bool, host: str, port: int | None) -> N
     "default_duration",
     type=int,
     default=None,
-    help="Set the default duration (in days) for new tasks.",
+    help="Default span (days) for new task dates; 0 disables automatic dates.",
 )
 @click.option(
     "--text-size",
@@ -203,8 +203,8 @@ def init(
 
     if dark_mode and light_mode:
         raise click.ClickException("--dark-mode and --light-mode are mutually exclusive.")
-    if default_duration is not None and default_duration <= 0:
-        raise click.ClickException("--default-duration must be a positive integer.")
+    if default_duration is not None and default_duration < 0:
+        raise click.ClickException("--default-duration must be zero or a positive integer.")
 
     if path is None:
         path = Path.cwd() / "TODO.md"
@@ -611,7 +611,7 @@ def task_remove(hash: str, path: Path | None) -> None:
     "default_duration",
     type=int,
     default=None,
-    help="Set the default duration (in days) for new tasks.",
+    help="Default span (days) for new task dates; 0 disables automatic dates.",
 )
 @click.option(
     "--text-size",
@@ -659,8 +659,8 @@ def config(
     if dark_mode and light_mode:
         raise click.ClickException("--dark-mode and --light-mode are mutually exclusive.")
 
-    if default_duration is not None and default_duration <= 0:
-        raise click.ClickException("--default-duration must be a positive integer.")
+    if default_duration is not None and default_duration < 0:
+        raise click.ClickException("--default-duration must be zero or a positive integer.")
 
     parsed_colors: dict[str, str] = {}
     for entry in tag_cols:
@@ -720,7 +720,10 @@ def config(
         summary.append(f"show_weekends = [bold]{str(show_weekends).lower()}[/]")
     if default_duration is not None:
         cfg.default_duration = default_duration
-        summary.append(f"default_duration = [bold]{default_duration}[/] day(s)")
+        if default_duration == 0:
+            summary.append("default_duration = [bold]0[/] (no automatic dates)")
+        else:
+            summary.append(f"default_duration = [bold]{default_duration}[/] day(s)")
     if text_size is not None:
         cfg.text_size = text_size
         summary.append(f"text_size = [bold]{text_size}[/]")

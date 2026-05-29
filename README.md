@@ -107,7 +107,7 @@ All flags can be combined in one call. Resolves the TODO file from cwd.
 | `--dark-mode` / `--light-mode` | Set the UI theme. |
 | `--tag-col TAG:color` | Set a tag's colour. Repeatable; or pass `TAG1:c1,TAG2:c2` to set several in one flag. `color` accepts a palette name (`red`, `green`, `blue`, …) or a `#rrggbb` hex. |
 | `--show-dates` / `--no-show-dates` | Default visibility of the start/end columns in the UI. |
-| `--default-duration <N>` | Length (days) of the auto-set start/end on new tasks. |
+| `--default-duration <N>` | Length (days) of the auto-set start/end on new tasks; `0` disables automatic dates. |
 | `--text-size <small\|medium\|big>` | UI text size. |
 | `--list-colors` | Print the colour palette with swatches and exit. |
 
