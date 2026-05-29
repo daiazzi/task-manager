@@ -1,6 +1,6 @@
 # todofile
 
-## DEVELOPMENT
+## 0.2.0 (2026-05-29)
 
 - refactor!: rename package to `todofile`.
 - feat: add auto-refresh on TODO edits.
